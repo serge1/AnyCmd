@@ -1,0 +1,14 @@
+Debug
+Release
+Win32
+x64
+ipch
+
+anycmd.ncb
+anycmd.*.user
+listplugin.GID
+
+*.suo
+*.sdf
+*.opensdf
+*.ncb
