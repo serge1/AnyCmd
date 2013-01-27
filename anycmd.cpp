@@ -12,17 +12,20 @@
 #include <commdlg.h>
 #include <math.h> 
 #include <algorithm> 
+#include <string>
 
 #include "anycmd.h"
-#include "cunicode.h"
 
-HINSTANCE   hinst;
+HINSTANCE hinst;
+HWND      listWin = 0;
+
 std::string g_text;
 std::string g_text_lo;
 char        inifilename[MAX_PATH]="anycmd.ini";  // Unused in this plugin,
                                                  // may be used to save data
-char        detect_string[MAX_PATH];
-char        command_string[MAX_PATH];
+char detect_string[MAX_PATH];
+char command_string[MAX_PATH];
+char cmd[MAX_PATH];
 
 //---------------------------------------------------------------------------
 static char*
@@ -40,17 +43,19 @@ searchAndReplace( std::string& value, std::string const& search,
                   std::string const& replace ) 
 { 
     std::string::size_type  next; 
- 
+
     for ( next = value.find( search );        // Try and find the first match 
-          next != std::string::npos;          // next is npos if nothing was found 
-          next = value.find( search, next )   // search for the next match starting after 
-                                              // the last match that was found. 
+        next != std::string::npos;          // next is npos if nothing was found 
+        next = value.find( search, next )   // search for the next match starting after 
+        // the last match that was found. 
         ) { 
-        // Inside the loop. So we found a match. 
-        value.replace( next, search.length(), replace );   // Do the replacement. 
-        next += replace.length();                          // Move to just after the replace 
-                                                           // This is the point were we start 
-                                                           // the next search from.  
+            // Inside the loop. So we found a match. 
+            if ( next == 0 || value[next - 1] != '\r' ) {
+                value.replace( next, search.length(), replace );   // Do the replacement. 
+            }
+            next += replace.length();                          // Move to just after the replace 
+            // This is the point were we start 
+            // the next search from.  
     }
 }
 
@@ -63,15 +68,15 @@ DllMain( HANDLE hModule,
 {
     switch ( ul_reason_for_call )
     {
-        case DLL_PROCESS_ATTACH:
-            hinst = (HINSTANCE)hModule;
-            break;
-        case DLL_PROCESS_DETACH:
-            break;
-        case DLL_THREAD_ATTACH:
-            break;
-        case DLL_THREAD_DETACH:
-            break;
+    case DLL_PROCESS_ATTACH:
+        hinst = (HINSTANCE)hModule;
+        break;
+    case DLL_PROCESS_DETACH:
+        break;
+    case DLL_THREAD_ATTACH:
+        break;
+    case DLL_THREAD_DETACH:
+        break;
     }
 
     return TRUE;
@@ -111,16 +116,15 @@ ListSetDefaultParams( ListDefaultParamStruct* dps )
 
 //---------------------------------------------------------------------------
 HWND APIENTRY
-ListLoad( HWND parentWin, char* fileToLoad, int showFlags )
+    ListLoad( HWND parentWin, char* fileToLoad, int showFlags )
 {
-    HWND listWin = 0;
     RECT r;
-    
+
     GetClientRect( parentWin, &r );
     // Create window invisbile, only show when data fully loaded!
     listWin = CreateWindow( "EDIT", "", WS_CHILD | ES_MULTILINE | ES_WANTRETURN |
-                                        ES_READONLY | WS_HSCROLL | WS_VSCROLL |
-                                        ES_AUTOVSCROLL | ES_NOHIDESEL,
+                            ES_READONLY | WS_HSCROLL | WS_VSCROLL |
+                            ES_AUTOVSCROLL | ES_NOHIDESEL,
                             r.left, r.top, r.right-r.left, r.bottom-r.top,
                             parentWin, NULL, hinst, NULL);
 
@@ -145,7 +149,9 @@ ListLoad( HWND parentWin, char* fileToLoad, int showFlags )
 int APIENTRY
 ListLoadNext( HWND parentWin, HWND listWin, char* fileToLoad, int showFlags)
 {
-    g_text = elfdump( fileToLoad );
+    sprintf_s( cmd, command_string, fileToLoad );
+
+    g_text = receive_text( cmd );
     if ( g_text.empty() ) {
         return LISTPLUGIN_ERROR;
     }

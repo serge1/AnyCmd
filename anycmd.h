@@ -64,6 +64,6 @@ HBITMAP APIENTRY ListGetPreviewBitmap( char* fileToLoad, int width, int height,
 HBITMAP APIENTRY ListGetPreviewBitmapW( WCHAR* fileToLoad, int width, int height,
                                         char* contentbuf,int contentbuflen);
 
-std::string elfdump( std::string fileToLoad );
+std::string receive_text( const char* cmd );
 
 #endif // _ANYELF__H

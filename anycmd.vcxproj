@@ -231,6 +231,8 @@
       <ImportLibrary>.\Debug/anycmd.lib</ImportLibrary>
       <TargetMachine>MachineX86</TargetMachine>
       <OutputFile>c:\totalcmd\plugins\wlx\anycmd\anycmd.wlx</OutputFile>
+      <ImageHasSafeExceptionHandlers>
+      </ImageHasSafeExceptionHandlers>
     </Link>
     <Bscmake>
       <SuppressStartupBanner>true</SuppressStartupBanner>
@@ -292,7 +294,10 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="anycmd.h" />
-    <ClInclude Include="cunicode.h" />
+    <ClInclude Include="resource.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="anycmd.rc" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
