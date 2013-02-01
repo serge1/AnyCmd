@@ -26,9 +26,9 @@ THE SOFTWARE.
 #define _SCL_SECURE_NO_WARNINGS
 #endif
 
-#define __STDC_FORMAT_MACROS
-
-#define BUFSIZE 4096
+#define BUFSIZE                     4096
+#define ITERATIONS_BEFORE_DLG_SHOWN   40
+#define POLL_TIME_INTERVAL            50
 
 #include <windows.h>
 #include <string>
@@ -39,13 +39,18 @@ extern HINSTANCE hinst;
 extern HWND      listWin;
 extern char      command_string[];
 
-std::string CreateChildProcess( const char* cmd );
-//std::string ReadFromPipe(void);
+BOOL           createTargetProcess( const char* cmd );
+void           closeTargetProcess();
+void           getOutputFromChildProcess();
+DWORD WINAPI   reader( LPVOID lpParameter );
+BOOL  CALLBACK dlgProc( HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam );
 
-PROCESS_INFORMATION piProcInfo; 
+static PROCESS_INFORMATION piProcInfo; 
 
-HANDLE g_hChildStd_OUT_Rd = 0;
-HANDLE g_hChildStd_OUT_Wr = 0;
+static HANDLE g_hChildStd_OUT_Rd = 0;
+static HANDLE g_hChildStd_OUT_Wr = 0;
+
+static std::string res;
 
 
 std::string receive_text( const char* cmd )
@@ -60,22 +65,108 @@ std::string receive_text( const char* cmd )
     if ( ! CreatePipe( &g_hChildStd_OUT_Rd, &g_hChildStd_OUT_Wr, &saAttr, 0 ) ) {
         return "Error on CreatePipe"; 
     }
+
     // Ensure the read handle to the pipe for STDOUT is not inherited.
     if ( ! SetHandleInformation(g_hChildStd_OUT_Rd, HANDLE_FLAG_INHERIT, 0) ) {
-        return "Stdout SetHandleInformation";
+        return "StdOut SetHandleInformation";
     }
 
-    // Create the child process. 
-    std::string ret = CreateChildProcess( cmd );
+    // Create the child process and get its output 
+    res = "";
+    if ( createTargetProcess( cmd ) ) {
+        getOutputFromChildProcess();
+    }
+    closeTargetProcess();
 
-    // Read from pipe that is the standard output for child process. 
-    //    ReadFromPipe(); 
+    // Read the rest of output from the child process's pipe for STDOUT
+    reader( 0 );
+
+    return res;
+}
+
+
+BOOL createTargetProcess( const char* cmd )
+{
+    // Set up members of the PROCESS_INFORMATION structure. 
+    ZeroMemory( &piProcInfo, sizeof( PROCESS_INFORMATION ) );
+
+    // Set up members of the STARTUPINFO structure. 
+    // This structure specifies the STDIN and STDOUT handles for redirection.
+    STARTUPINFO siStartInfo;
+    ZeroMemory( &siStartInfo, sizeof( STARTUPINFO ) );
+    siStartInfo.cb          = sizeof( STARTUPINFO ); 
+    siStartInfo.hStdError   = g_hChildStd_OUT_Wr;
+    siStartInfo.hStdOutput  = g_hChildStd_OUT_Wr;
+    siStartInfo.hStdInput   = 0;
+    siStartInfo.dwFlags    |= STARTF_USESTDHANDLES;
+
+    // Create the child process. 
+    BOOL ret = CreateProcess( NULL, 
+        (LPSTR)cmd,       // command line 
+        NULL,             // process security attributes 
+        NULL,             // primary thread security attributes 
+        TRUE,             // handles are inherited 
+        CREATE_NO_WINDOW, // creation flags 
+        NULL,             // use parent's environment 
+        NULL,             // use parent's current directory 
+        &siStartInfo,     // STARTUPINFO pointer 
+        &piProcInfo );    // receives PROCESS_INFORMATION 
 
     return ret;
 }
 
 
-BOOL CALLBACK ToolDlgProc( HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam )
+void closeTargetProcess()
+{
+    // Close handles to the child process and its primary thread.
+    CloseHandle( piProcInfo.hProcess );
+    CloseHandle( piProcInfo.hThread );
+    CloseHandle( g_hChildStd_OUT_Wr );
+}
+
+
+void getOutputFromChildProcess()
+{ 
+    DWORD  threadID;
+    HANDLE thread     = CreateThread( 0, 0, reader, 0, 0, &threadID );
+    HWND   waitDialog = CreateDialog( hinst,
+        MAKEINTRESOURCE( IDD_WAIT_DIALOG ),
+        listWin,
+        dlgProc );
+
+    int count = 0;
+    if( waitDialog != NULL ) {
+        MSG msg;
+        // To make the GetMessage() loop spin, send idle messages
+        PostMessage( waitDialog, WM_ENTERIDLE, MSGF_DIALOGBOX, (LPARAM)waitDialog );
+        while( GetMessage( &msg, NULL, 0, 0 ) )
+        {
+            if( !IsDialogMessage( waitDialog, &msg ) ) {
+                TranslateMessage( &msg );
+                DispatchMessage( &msg );
+            }
+
+            DWORD wait_state = WaitForSingleObject( piProcInfo.hProcess, POLL_TIME_INTERVAL );
+            if ( wait_state == WAIT_OBJECT_0 || wait_state == WAIT_FAILED ) {
+                break;
+            }
+
+            if ( ++count == ITERATIONS_BEFORE_DLG_SHOWN ) {
+                ShowWindow( waitDialog, SW_SHOW );
+            }
+            else if ( count < ITERATIONS_BEFORE_DLG_SHOWN ) {
+                PostMessage( waitDialog, WM_ENTERIDLE, MSGF_DIALOGBOX, (LPARAM)waitDialog );
+            }
+        }
+
+        DestroyWindow( waitDialog );
+    }
+
+    TerminateThread( thread, 0 );
+}
+
+
+BOOL CALLBACK dlgProc( HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam )
 {
     switch( msg ) {
     case WM_COMMAND:
@@ -92,126 +183,22 @@ BOOL CALLBACK ToolDlgProc( HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam )
 }
 
 
-std::string res;
-
-
-DWORD WINAPI Reader( LPVOID lpParameter )
+DWORD WINAPI reader( LPVOID lpParameter )
 {
-    DWORD       dwRead; 
-    CHAR        chBuf[BUFSIZE]; 
-    BOOL        bSuccess1 = TRUE;
+    DWORD dwRead; 
+    CHAR  chBuf[BUFSIZE]; 
+    BOOL  bSuccess = TRUE;
 
     // Read output from the child process's pipe for STDOUT
     // Stop when there is no more data. 
-    bSuccess1 = TRUE;
-    while (bSuccess1) 
+    while (bSuccess) 
     { 
-        bSuccess1 = ReadFile( g_hChildStd_OUT_Rd, chBuf, BUFSIZE, &dwRead, NULL );
-        if( ! bSuccess1 || dwRead == 0 ) {
+        bSuccess = ReadFile( g_hChildStd_OUT_Rd, chBuf, BUFSIZE, &dwRead, NULL );
+        if( ! bSuccess || dwRead == 0 ) {
             break; 
         }
         res += std::string( chBuf, dwRead );
     }
 
     return 0;
-}
-
-
-std::string CreateChildProcess( const char* cmd )
-    // Create a child process that uses the previously created pipes for STDIN and STDOUT.
-{ 
-    STARTUPINFO siStartInfo;
-    BOOL        bSuccess = FALSE; 
-
-    DWORD       dwRead; 
-    CHAR        chBuf[BUFSIZE]; 
-    BOOL        bSuccess1 = TRUE;
-
-    // Set up members of the PROCESS_INFORMATION structure. 
-    ZeroMemory( &piProcInfo, sizeof( PROCESS_INFORMATION ) );
-
-    // Set up members of the STARTUPINFO structure. 
-    // This structure specifies the STDIN and STDOUT handles for redirection.
-    ZeroMemory( &siStartInfo, sizeof( STARTUPINFO ) );
-    siStartInfo.cb          = sizeof( STARTUPINFO ); 
-    siStartInfo.hStdError   = g_hChildStd_OUT_Wr;
-    siStartInfo.hStdOutput  = g_hChildStd_OUT_Wr;
-    siStartInfo.hStdInput   = 0;
-    siStartInfo.dwFlags    |= STARTF_USESTDHANDLES;
-
-    // Create the child process. 
-    bSuccess = CreateProcess( NULL, 
-        (LPSTR)cmd,       // command line 
-        NULL,             // process security attributes 
-        NULL,             // primary thread security attributes 
-        TRUE,             // handles are inherited 
-        CREATE_NO_WINDOW, // creation flags 
-        NULL,             // use parent's environment 
-        NULL,             // use parent's current directory 
-        &siStartInfo,     // STARTUPINFO pointer 
-        &piProcInfo );    // receives PROCESS_INFORMATION 
-
-    // If an error occurs, exit the application. 
-    if ( bSuccess ) {
-        res = "";
-
-        DWORD  threadID;
-        HANDLE thread = CreateThread( 0, 0, Reader, 0, 0, &threadID );
-
-        HWND waitDialog = 0;
-
-        waitDialog = CreateDialog( hinst,
-            MAKEINTRESOURCE( IDD_WAIT_DIALOG ),
-            listWin,
-            ToolDlgProc );
-
-        int count = 0;
-        if( waitDialog != NULL ) {
-            MSG msg;
-            // To make the GetMessage() loop spin, send idle messages
-            PostMessage( waitDialog, WM_ENTERIDLE, MSGF_DIALOGBOX, (LPARAM)waitDialog );
-            while( GetMessage( &msg, NULL, 0, 0 ) )
-            {
-                if( !IsDialogMessage( waitDialog, &msg ) ) {
-                    TranslateMessage( &msg );
-                    DispatchMessage( &msg );
-                }
-
-                DWORD wait_state = WaitForSingleObject( piProcInfo.hProcess, 50 );
-                if ( wait_state == WAIT_OBJECT_0 || wait_state == WAIT_FAILED ) {
-                    break;
-                }
-
-                if ( ++count == 40 ) {
-                    ShowWindow( waitDialog, SW_SHOW );
-                }
-                else if ( count < 40 ) {
-                    PostMessage( waitDialog, WM_ENTERIDLE, MSGF_DIALOGBOX, (LPARAM)waitDialog );
-                }
-            }
-
-            DestroyWindow( waitDialog );
-        }
-
-        TerminateThread( thread, 0 );
-    }
-
-    // Close handles to the child process and its primary thread.
-    CloseHandle( piProcInfo.hProcess );
-    CloseHandle( piProcInfo.hThread );
-    CloseHandle( g_hChildStd_OUT_Wr );
-
-    // Read output from the child process's pipe for STDOUT
-    // Stop when there is no more data. 
-    bSuccess1 = TRUE;
-    while (bSuccess1) 
-    { 
-        bSuccess1 = ReadFile( g_hChildStd_OUT_Rd, chBuf, BUFSIZE, &dwRead, NULL );
-        if( ! bSuccess1 || dwRead == 0 ) {
-            break; 
-        }
-        res += std::string( chBuf, dwRead );
-    } 
-
-    return res;
 }
