@@ -1,5 +1,28 @@
-// anycmd.cpp : Defines the entry point for the DLL application.
-//
+/*
+anycmd.cpp - Total Commander lister plugin
+
+Copyright (C) 2012-2013 by Serge Lamikhov-Center
+
+MIT License
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
+*/
 
 #define _CRT_SECURE_NO_WARNINGS
 #define WIN32_LEAN_AND_MEAN		// Exclude rarely-used stuff from Windows headers
@@ -101,16 +124,24 @@ ListSetDefaultParams( ListDefaultParamStruct* dps )
 
     GetPrivateProfileString( "AnyCmd",
                              "DetectString",
-                             "",
+                             "EXT=TXT",
                              detect_string,
                              sizeof( detect_string ),
                              dps->DefaultIniName );
     GetPrivateProfileString( "AnyCmd",
                              "Command",
-                             "",
+                             "cmd.exe /c sort %s",
                              command_string,
                              sizeof( command_string ),
                              dps->DefaultIniName );
+    WritePrivateProfileString( "AnyCmd",
+                               "DetectString",
+                               detect_string,
+                               dps->DefaultIniName );
+    WritePrivateProfileString( "AnyCmd",
+                               "Command",
+                               command_string,
+                               dps->DefaultIniName );
 }
 
 

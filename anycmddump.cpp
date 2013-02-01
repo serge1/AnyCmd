@@ -1,7 +1,9 @@
 /*
-ELFDump.cpp - Dump ELF file using ELFIO library.
+anycmddump.cpp - Total Commander lister plugin text dumper
 
-Copyright (C) 2001-2011 by Serge Lamikhov-Center
+Copyright (C) 2012-2013 by Serge Lamikhov-Center
+
+MIT License
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
