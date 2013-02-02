@@ -1,0 +1,358 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>AnyCmd - Total Commander lister plugin</title>
+<link rel="stylesheet" href="style.css" type="text/css"/>
+</head>
+
+<body>
+
+<table summary="Title and Sourceforge logo.">
+<tr>
+<td align="left">
+<h1>AnyCmd - a Total Commander lister plugin</h1>
+</td>
+</tr>
+</table>
+
+<div class="links">
+<h3>Links</h3>
+<ul class="menu">
+<li><a href="http://sourceforge.net/projects/anycmd/files/">Download</a> precompiled installation package for the plugin</li><br/>
+<li><a href="http://sourceforge.net/p/anycmd/code/">View</a> plugin's source code</li><br/>
+<li>Visit the <a href="http://sourceforge.net/projects/anycmd/">SourceForge project page</a></li><br/>
+<li>Vote or write review, if you <a href="http://sourceforge.net/projects/anycmd/reviews/">like the project</a></li><br/>
+<li>Send <a href="mailto:to_serge@users.sourceforge.net">feedback, comments, patches, etc.</a></li></br>
+</ul>
+</div>
+
+<div class="main">
+
+<p>
+If you still don’t know what Total Commander is, please take several minutes and
+visit its site: <a href="http://www.totalcmd.com">http://www.totalcmd.com</a>. Probably, it is the best file manager
+for Windows OS. Be careful though – if you start using Total Commander, you will
+never switch back! ;-)
+</p>
+<p>
+Inspired by <a href="http://www.totalcmd.net/plugring/AnyELF.html">AnyELF Total Commander plugin</a>, an idea came – why limit yourself with
+a special file formats only. Why not permit to user define a custom dumper,
+text filter, lister or file viewer? After all, there are a lot of command line
+text processing utilities that already do this work. Definitely, you may use file
+associations or just use command line window. But, would not be is great if you
+could do the job within Total Commander itself? I mean - do anything!
+You can sort lines of text, compile a program, launch you favorite Perl
+(really, Perl?) script, and so on.
+</p>
+<p>
+That is how the idea came, and that is why the plugin was implemented.
+So, let’s start:
+</p>
+<h2>Installation</h2>
+<p>
+Download the wlx_anycmd.zip file and save it in a temporary location.
+Open Total Commander, locate the file and double click on it (or just press “ENTER”).
+Total Commander will prompt you to install the plugin. Accept it. A list of
+installed plugins will appear. Just press “OK”. That is all.
+</p>
+<h2>Detect and Command strings</h2>
+<p>
+By default, the plugin will work on any file with extension .TXT. When opened
+with the lister (F3 button), the plugin will show the text file content sorted.
+You may switch between original and sorted text by pressing ‘1’ and ‘4’ correspondingly.
+If that it is what you want, you are done. But, how can you change the default settings?
+</p>
+
+<h3>Init files</h3>
+<p>
+To change the default setting, you need to write new detect and command strings.
+You may modify them in the init file. Here is the procedure:
+</p>
+
+<li>
+Locate lsplugin.ini and wincmd.ini files. Usually, they are located in your
+User’s AppData\Roaming\GHISLER directory. For example, on my computer, the full
+path is: c:\Users\Serge\AppData\Roaming\GHISLER. One of the way to figure out
+the proper location is to choose “Configuration/Change Settings Files Directly”
+menu item. In notepad, choose “File/Save As …”. Mention the directory where the
+current file is located.
+</li><br/>
+
+<li>
+<p>
+In wincmd.ini file, under “[ListerPlugins]” group, remove the current (cached)
+detection string. Initially it can look like this:
+</p>
+<div class="example">
+<h4 class="example">wincmd.ini</h4>
+<div class="example_code notranslate">
+[ListerPlugins]<br/>
+...<br/>
+x=C:\totalcmd\plugins\wlx\anycmd\anycmd.wlx<br/>
+x_detect="EXT=TXT"
+</div>
+</div>
+<p>
+Where ‘x’ is a number. Remove the second (‘x_detect’) line.
+</p>
+</li><br/>
+
+<li>
+In lsplugin.ini, adjust the “DetectString” and “Command” strings for “AnyCmd”
+group. Initially, they are looking like this:
+<div class="example">
+<h4 class="example">lsplugin.ini</h4>
+<div class="example_code notranslate">
+[AnyCmd]<br/>
+DetectString=EXT=TXT<br/>
+Command=cmd.exe /c sort %s<br/>
+</div>
+</div>
+This setting permits to sort text files (files with .TXT extension). Modifying
+“DetectString” to be 
+<div class="example">
+<h4 class="example">lsplugin.ini</h4>
+<div class="example_code notranslate">
+DetectString=EXT=TXT & FIND(“AnyCmd”)
+</div>
+</div>
+we will sort only those text files that contain “AnyCmd” word inside.
+</li><br/>
+
+<li>
+Restart Total Commander. The new setting should be accepted.
+</li><br/>
+
+<h3>
+Detect and Command Strings Examples
+</h3>
+
+<p>
+To get started, here go some examples of init files. Please note - %s is
+substituted by actual file name.
+</p>
+<p>
+View file’s attributes and full path for .INI files:
+</p>
+<div class="example">
+<h4 class="example">lsplugin.ini - View file’s attributes and full path for .INI files</h4>
+<div class="example_code notranslate">
+[AnyCmd]<br/>
+DetectString=EXT=INI<br/>
+Command=cmd.exe /c attrib %s<br/>
+</div>
+</div>
+<p>
+Compile .CPP file and show errors (if any):
+</p>
+<div class="example">
+<h4 class="example">lsplugin.ini - Compile .CPP file and show errors</h4>
+<div class="example_code notranslate">
+[AnyCmd]<br/>
+DetectString=EXT=CPP<br/>
+Command=cl -c %s<br/>
+</div>
+</div>
+<p>
+Invoke a batch file:
+</p>
+<div class="example">
+<h4 class="example">lsplugin.ini - Invoke a batch file</h4>
+<div class="example_code notranslate">
+[AnyCmd]<br/>
+DetectString=EXT=CPP<br/>
+Command=cmd.exe /c c:\mycomp.bat %s<br/>
+</div>
+</div>
+<p>
+If the content of c:\mycomp.bat file is like this:
+</p>
+<div class="example">
+<h4 class="example">c:\mycomp.bat</h4>
+<div class="example_code notranslate">
+cl -c /Fatemp.tmp %1<br/>
+type temp.tmp<br/>
+del temp.tmp<br/>
+</div>
+</div>
+<p>
+assembly listing for compiled .CPP file will be shown.
+</p>
+
+<p>
+The only requirement to invoked programs is that they should print out their
+output to the standard output stream. Your needs, creativity and fantasy will
+help you continue from this point. Enjoy!
+</p>
+
+<h2>
+Appendix: Detect Strings Syntax
+</h2>
+
+<p>
+This section describes the detection string syntax. It is taken from <a href="http://www.ghisler.com/plugins.htm#lister">“Lister Plugin Guide”</a>.
+</p>
+
+<div class="example">
+<h4 class="example">The syntax of the detection string</h4>
+<div class="example_code notranslate">
+
+<p>
+The syntax of the detection string is as follows. There are operands, operators and functions.
+</p>
+<p>
+<b>Operands:</b>
+</p>
+<p>
+
+<table border="1">
+<tr>
+<td>EXT</td><td>The extension of the file to be loaded (always uppercase)</td>
+</tr>
+<tr>
+<td>SIZE</td><td>The size of the file to be loaded.</td>
+</tr>
+<tr>
+<td>FORCE</td><td>1 if the user chose 'Image/Multimedia' from the menu, 0 otherwise.</td>
+</tr>
+<tr>
+<td>MULTIMEDIA</td><td>This detect string is special: It is always TRUE (also in older TC versions). If it is present in the string, this plugin overrides internal multimedia viewers in TC. If not, the internal viewers are used. Check the example below!</td>
+</tr>
+<tr>
+<td>[5]</td><td>The fifth byte in the file to be loaded. The first 8192 bytes can be checked for a match.</td>
+</tr>
+<tr>
+<td>12345</td><td>The number 12345</td>
+</tr>
+<tr>
+<td>"TEST"</td><td>The string "TEST"</td>
+</tr>
+</table>
+
+</p>
+<p>
+<b>Operators</b>
+</p>
+<p>
+
+<table border="1">
+<tr>
+<td>&</td><td>AND. The left AND the right expression must be true (!=0).</td>
+</tr>
+<tr>
+<td>|</td><td>OR: Either the left OR the right expression needs to be true (!=0).</td>
+</tr>
+<tr>
+<td>=</td><td>EQUAL: The left and right expression need to be equal.</td>
+</tr>
+<tr>
+<td>!=</td><td>UNEQUAL: The left and right expression must not be equal.</td>
+</tr>
+<tr>
+<td> < </td><td>SMALLER: The left expression is smaller than the right expression. Comparing a number and a string returns false (0). Booleans are stored as 0 (false) and 1 (true).</td>
+</tr>
+<tr>
+<td> > </td><td>LARGER: The left expression is larger than the right expression.</td>
+</tr>
+</table>
+
+</p>
+<p>
+<b>Functions</b>
+</p>
+<p>
+<table border="1">
+<tr>
+<td>()</td><td>Braces: The expression inside the braces is evaluated as a whole.</td>
+</tr>
+<tr>
+<td>!()</td><td>NOT: The expression inside the braces will be inverted. Note that the braces are necessary!</td>
+</tr>
+<tr>
+<td>FIND()</td><td>The text inside the braces is searched in the first 8192 bytes of the file. Returns 1 for success and 0 for failure.</td>
+</tr>
+<tr>
+<td>FINDI()</td><td>The text inside the braces is searched in the first 8192 bytes of the file. Upper/lowercase is ignored.</td>
+</tr>
+</table>
+
+</p>
+<p>
+<b>Internal handling of variables</b>
+</p>
+<p>
+Varialbes can store numbers and strings. Operators can compare numbers with numbers and strings with strings, but not numbers with strings. Exception: A single char can also be compared with a number. Its value is its ANSI character code (e.g. "A"=65). Boolean values of comparisons are stored as 1 (true) and 0 (false).
+</p>
+<p>
+<b>Examples:</b>
+</p>
+<table border="1">
+<tr>
+<th>String</th><th>Interpretation</th>
+</tr>
+<tr>
+<td>EXT="WAV" | EXT="AVI"</td><td>The file may be a Wave or AVI file.</td>
+</tr>
+<tr>
+<td>EXT="WAV" & [0]="R" & [1]="I" & [2]="F" & [3]="F" & FIND("WAVEfmt")</td><td>Also checks for Wave header "RIFF" and string "WAVEfmt"</td>
+</tr>
+<tr>
+<td>EXT="WAV" & (SIZE<1000000 | FORCE)</td><td>Load wave files smaller than 1000000 bytes at startup/file change, and all wave files if the user explictly chooses 'Image/Multimedia' from the menu.</td>
+</tr>
+<tr>
+<td>([0]="P" & [1]="K" & [2]=3 & [3]=4) | ([0]="P" & [1]="K" & [2]=7 & [3]=8)</td><td>Checks for the ZIP header PK#3#4 or PK#7#8 (the latter is used for multi-volume zip files).</td>
+</tr>
+<tr>
+<td>EXT="TXT" & !(FINDI("<HEAD>") | FINDI("<BODY>"))</td><td>This plugin handles text files which aren't HTML files. A first detection is done with the <HEAD> and <BODY> tags. If these are not found, a more thorough check may be done in the plugin itself.</td>
+</tr>
+<tr>
+<td>MULTIMEDIA & (EXT="WAV" | EXT="MP3")</td><td>Replace the internal player for WAV and MP3 files (which normally uses Windows Media Player as a plugin). Requires TC 6.0 or later!</td>
+</tr>
+<tr>
+</table>
+
+<p>
+<b>Operator precedence:</b>
+</p>
+<p>
+The strongest operators are =, != < and >, then comes &, and finally |. What does this mean? Example:
+
+expr1="a" & expr2 | expr3<5 & expr4!=b will be evaluated as ((expr1="a") & expr2) | ((expr3<5) & (expr4!="b"))
+</p>
+<p>
+If in doubt, simply use braces to make the evaluation order clear.
+</p>
+</div>
+</div>
+
+
+
+
+</div>
+
+<div class="by">
+<p class="author">
+The library and the page is maintained by
+<a href="mailto:to_serge@users.sourceforge.net">Serge Lamikhov-Center</a>.</br>
+</p>
+
+<table summary="Title and Sourceforge logo.">
+<tr>
+<td align="left" class=""author>
+<p class="author">
+Project Web Hosted by
+</p>
+</td>
+<td align="left">
+<a href="http://sourceforge.net/projects/elfio"><img src="http://sflogo.sourceforge.net/sflogo.php?group_id=19959&amp;type=10" width="80" height="15" border="0" alt="Get ELFIO library" /></a>
+</td>
+</tr>
+</table>
+
+
+</div>
+
+</body>
+
+</html>
