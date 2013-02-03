@@ -31,18 +31,19 @@
 
 <p>
 If you still don’t know what Total Commander is, please take several minutes and
-visit its site: <a href="http://www.totalcmd.com">http://www.totalcmd.com</a>. Probably, it is the best file manager
+visit the site: <a href="http://www.totalcmd.com">http://www.totalcmd.com</a>. Probably, it is the best file manager
 for Windows OS. Be careful though – if you start using Total Commander, you will
-never switch back! ;-)
+never switch back to another file manager! ;-)
 </p>
 <p>
 Inspired by <a href="http://www.totalcmd.net/plugring/AnyELF.html">AnyELF Total Commander plugin</a>, an idea came – why limit yourself with
 a special file formats only. Why not permit to user define a custom dumper,
 text filter, lister or file viewer? After all, there are a lot of command line
-text processing utilities that already do this work. Definitely, you may use file
-associations or just use command line window. But, would not be is great if you
+text processing utilities that already do this job. Definitely, you may use file
+associations or just use command line window for this purpose.
+But, would not be it is just great if you
 could do the job within Total Commander itself? I mean - do anything!
-You can sort lines of text, compile a program, launch you favorite Perl
+You can sort lines of text, compile a program, launch your favorite Perl
 (really, Perl?) script, and so on.
 </p>
 <p>
@@ -56,17 +57,17 @@ Open Total Commander, locate the file and double click on it (or just press “ENT
 Total Commander will prompt you to install the plugin. Accept it. A list of
 installed plugins will appear. Just press “OK”. That is all.
 </p>
-<h2>Detect and Command strings</h2>
+<h2>Detection and Command strings</h2>
 <p>
 By default, the plugin will work on any file with extension .TXT. When opened
-with the lister (F3 button), the plugin will show the text file content sorted.
+with the lister (F3 button), the plugin will show text file content sorted.
 You may switch between original and sorted text by pressing ‘1’ and ‘4’ correspondingly.
-If that it is what you want, you are done. But, how can you change the default settings?
+If that it is what you want, you are done. But, how can you customize the default settings?
 </p>
 
 <h3>Init files</h3>
 <p>
-To change the default setting, you need to write new detect and command strings.
+To change the default setting, you need to write new detection and command strings.
 You may modify them in the init file. Here is the procedure:
 </p>
 
@@ -82,7 +83,7 @@ current file is located.
 <li>
 <p>
 In wincmd.ini file, under “[ListerPlugins]” group, remove the current (cached)
-detection string. Initially it can look like this:
+detection string. Initially it may look like this:
 </p>
 <div class="example">
 <h4 class="example">wincmd.ini</h4>
@@ -94,7 +95,8 @@ x_detect="EXT=TXT"
 </div>
 </div>
 <p>
-Where ‘x’ is a number. Remove the second (‘x_detect’) line.
+Where ‘x’ is a number.<br/>
+Remove the second (‘x_detect’) line.
 </p>
 </li><br/>
 
@@ -106,7 +108,7 @@ group. Initially, they are looking like this:
 <div class="example_code notranslate">
 [AnyCmd]<br/>
 DetectString=EXT=TXT<br/>
-Command=cmd.exe /c sort %s<br/>
+Command=sort.exe %s<br/>
 </div>
 </div>
 This setting permits to sort text files (files with .TXT extension). Modifying
@@ -121,11 +123,11 @@ we will sort only those text files that contain “AnyCmd” word inside.
 </li><br/>
 
 <li>
-Restart Total Commander. The new setting should be accepted.
+Save your changes and restart Total Commander. The new setting should be accepted.
 </li><br/>
 
 <h3>
-Detect and Command Strings Examples
+Detection and Command Strings Examples
 </h3>
 
 <p>
@@ -187,7 +189,7 @@ help you continue from this point. Enjoy!
 </p>
 
 <h2>
-Appendix: Detect Strings Syntax
+Appendix: Detection Strings Syntax
 </h2>
 
 <p>
@@ -333,7 +335,7 @@ If in doubt, simply use braces to make the evaluation order clear.
 
 <div class="by">
 <p class="author">
-The library and the page is maintained by
+The project and the page is maintained by
 <a href="mailto:to_serge@users.sourceforge.net">Serge Lamikhov-Center</a>.</br>
 </p>
 

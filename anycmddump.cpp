@@ -41,11 +41,17 @@ extern HINSTANCE hinst;
 extern HWND      listWin;
 extern char      command_string[];
 
-BOOL           createTargetProcess( const char* cmd );
-void           closeTargetProcess();
-void           getOutputFromChildProcess();
-DWORD WINAPI   reader( LPVOID lpParameter );
-BOOL  CALLBACK dlgProc( HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam );
+BOOL         createTargetProcess( const char* cmd );
+void         closeTargetProcess();
+void         getOutputFromChildProcess();
+DWORD WINAPI reader( LPVOID lpParameter );
+
+#ifdef _M_X64
+INT_PTR
+#else
+BOOL
+#endif
+CALLBACK dlgProc( HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam );
 
 static PROCESS_INFORMATION piProcInfo; 
 
@@ -168,7 +174,12 @@ void getOutputFromChildProcess()
 }
 
 
-BOOL CALLBACK dlgProc( HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam )
+#ifdef _M_X64
+INT_PTR
+#else
+BOOL
+#endif
+CALLBACK dlgProc( HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam )
 {
     switch( msg ) {
     case WM_COMMAND:

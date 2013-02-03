@@ -1,0 +1,21 @@
+AnyCmd is a Total Commander lister plugin that permits redirect standard output
+and error streams of any program to Total Commander lister view.
+
+Inspired by AnyELF Total Commander plugin <http://anyelf.sourceforge.net>,
+an idea came – why limit yourself with a special file formats only.
+Why not permit to user define a custom dumper, text filter, lister or file viewer?
+After all, there are a lot of command line text processing utilities that
+already do this job. Definitely, you may use file associations or just use
+command line window for this purpose. But, would not be it is just great if you
+could do the job within Total Commander itself? I mean - do anything!
+You can sort lines of text, compile a program, launch your favorite
+Perl (really, Perl?) script, and so on.
+
+Installation
+
+Download the wlx_anycmd.zip file and save it in a temporary location.
+Open Total Commander, locate the file and double click on it
+(or just press “ENTER”). Total Commander will prompt you to install the plugin.
+Accept it. A list of installed plugins will appear. Just press “OK”. That is all.
+
+More instractions can be found in the 'doc' folder of the source package.

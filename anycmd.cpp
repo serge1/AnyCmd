@@ -130,7 +130,7 @@ ListSetDefaultParams( ListDefaultParamStruct* dps )
                              dps->DefaultIniName );
     GetPrivateProfileString( "AnyCmd",
                              "Command",
-                             "cmd.exe /c sort %s",
+                             "sort.exe %s",
                              command_string,
                              sizeof( command_string ),
                              dps->DefaultIniName );
