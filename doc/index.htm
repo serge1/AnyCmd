@@ -30,13 +30,13 @@
 <div class="main">
 
 <p>
-If you still don’t know what Total Commander is, please take several minutes and
+If you still don't know what Total Commander is, please take several minutes and
 visit the site: <a href="http://www.totalcmd.com">http://www.totalcmd.com</a>. Probably, it is the best file manager
-for Windows OS. Be careful though – if you start using Total Commander, you will
+for Windows OS. Be careful though - if you start using Total Commander, you will
 never switch back to another file manager! ;-)
 </p>
 <p>
-Inspired by <a href="http://www.totalcmd.net/plugring/AnyELF.html">AnyELF Total Commander plugin</a>, an idea came – why limit yourself with
+Inspired by <a href="http://www.totalcmd.net/plugring/AnyELF.html">AnyELF Total Commander plugin</a>, an idea came - why limit yourself with
 a special file formats only. Why not permit to user define a custom dumper,
 text filter, lister or file viewer? After all, there are a lot of command line
 text processing utilities that already do this job. Definitely, you may use file
@@ -48,20 +48,20 @@ You can sort lines of text, compile a program, launch your favorite Perl
 </p>
 <p>
 That is how the idea came, and that is why the plugin was implemented.
-So, let’s start:
+So, let's start:
 </p>
 <h2>Installation</h2>
 <p>
 Download the wlx_anycmd.zip file and save it in a temporary location.
-Open Total Commander, locate the file and double click on it (or just press “ENTER”).
+Open Total Commander, locate the file and double click on it (or just press "ENTER").
 Total Commander will prompt you to install the plugin. Accept it. A list of
-installed plugins will appear. Just press “OK”. That is all.
+installed plugins will appear. Just press "OK". That is all.
 </p>
 <h2>Detection and Command strings</h2>
 <p>
 By default, the plugin will work on any file with extension .TXT. When opened
 with the lister (F3 button), the plugin will show text file content sorted.
-You may switch between original and sorted text by pressing ‘1’ and ‘4’ correspondingly.
+You may switch between original and sorted text by pressing '1' and '4' correspondingly.
 If that it is what you want, you are done. But, how can you customize the default settings?
 </p>
 
@@ -73,16 +73,16 @@ You may modify them in the init file. Here is the procedure:
 
 <li>
 Locate lsplugin.ini and wincmd.ini files. Usually, they are located in your
-User’s AppData\Roaming\GHISLER directory. For example, on my computer, the full
+User's AppData\Roaming\GHISLER directory. For example, on my computer, the full
 path is: c:\Users\Serge\AppData\Roaming\GHISLER. One of the way to figure out
-the proper location is to choose “Configuration/Change Settings Files Directly”
-menu item. In notepad, choose “File/Save As …”. Mention the directory where the
+the proper location is to choose "Configuration/Change Settings Files Directly"
+menu item. In notepad, choose "File/Save As ...". Mention the directory where the
 current file is located.
 </li><br/>
 
 <li>
 <p>
-In wincmd.ini file, under “[ListerPlugins]” group, remove the current (cached)
+In wincmd.ini file, under "[ListerPlugins]" group, remove the current (cached)
 detection string. Initially it may look like this:
 </p>
 <div class="example">
@@ -95,13 +95,13 @@ x_detect="EXT=TXT"
 </div>
 </div>
 <p>
-Where ‘x’ is a number.<br/>
-Remove the second (‘x_detect’) line.
+Where 'x' is a number.<br/>
+Remove the second ('x_detect') line.
 </p>
 </li><br/>
 
 <li>
-In lsplugin.ini, adjust the “DetectString” and “Command” strings for “AnyCmd”
+In lsplugin.ini, adjust the "DetectString" and "Command" strings for "AnyCmd"
 group. Initially, they are looking like this:
 <div class="example">
 <h4 class="example">lsplugin.ini</h4>
@@ -112,14 +112,14 @@ Command=sort.exe %s<br/>
 </div>
 </div>
 This setting permits to sort text files (files with .TXT extension). Modifying
-“DetectString” to be 
+"DetectString" to be 
 <div class="example">
 <h4 class="example">lsplugin.ini</h4>
 <div class="example_code notranslate">
-DetectString=EXT=TXT & FIND(“AnyCmd”)
+DetectString=EXT=TXT & FIND("AnyCmd")
 </div>
 </div>
-we will sort only those text files that contain “AnyCmd” word inside.
+we will sort only those text files that contain "AnyCmd" word inside.
 </li><br/>
 
 <li>
@@ -135,10 +135,10 @@ To get started, here go some examples of init files. Please note - %s is
 substituted by actual file name.
 </p>
 <p>
-View file’s attributes and full path for .INI files:
+View file's attributes and full path for .INI files:
 </p>
 <div class="example">
-<h4 class="example">lsplugin.ini - View file’s attributes and full path for .INI files</h4>
+<h4 class="example">lsplugin.ini - View file's attributes and full path for .INI files</h4>
 <div class="example_code notranslate">
 [AnyCmd]<br/>
 DetectString=EXT=INI<br/>
@@ -193,7 +193,7 @@ Appendix: Detection Strings Syntax
 </h2>
 
 <p>
-This section describes the detection string syntax. It is taken from <a href="http://www.ghisler.com/plugins.htm#lister">“Lister Plugin Guide”</a>.
+This section describes the detection string syntax. It is taken from <a href="http://www.ghisler.com/plugins.htm#lister">"Lister Plugin Guide"</a>.
 </p>
 
 <div class="example">
