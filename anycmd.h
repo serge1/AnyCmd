@@ -35,6 +35,9 @@
 #define LISTPLUGIN_OK      0
 #define LISTPLUGIN_ERROR   1
 
+#define ANYCMD_CATCH_STD_OUT 1
+#define ANYCMD_CATCH_STD_ERR 2
+
 typedef struct {
     int size;
     DWORD PluginInterfaceVersionLow;
@@ -64,6 +67,6 @@ HBITMAP APIENTRY ListGetPreviewBitmap( char* fileToLoad, int width, int height,
 HBITMAP APIENTRY ListGetPreviewBitmapW( WCHAR* fileToLoad, int width, int height,
                                         char* contentbuf,int contentbuflen);
 
-std::string receive_text( const char* cmd );
+std::string receive_text( const char* cmd, unsigned int streams );
 
 #endif // _ANYELF__H

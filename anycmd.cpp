@@ -49,6 +49,7 @@ char        inifilename[MAX_PATH]="anycmd.ini";  // Unused in this plugin,
 char detect_string[MAX_PATH];
 char command_string[MAX_PATH];
 char cmd[MAX_PATH];
+int  streams = 3;
 
 //---------------------------------------------------------------------------
 static char*
@@ -134,6 +135,14 @@ ListSetDefaultParams( ListDefaultParamStruct* dps )
                              command_string,
                              sizeof( command_string ),
                              dps->DefaultIniName );
+    streams = GetPrivateProfileInt( "AnyCmd",
+                                    "Stream",
+                                    ANYCMD_CATCH_STD_OUT | ANYCMD_CATCH_STD_ERR,
+                                    dps->DefaultIniName );
+    if ( ( streams & ( ANYCMD_CATCH_STD_OUT | ANYCMD_CATCH_STD_ERR ) ) == 0 ) {
+        streams = ANYCMD_CATCH_STD_OUT | ANYCMD_CATCH_STD_ERR;
+    }
+    sprintf_s( cmd, "%d", streams );
     WritePrivateProfileString( "AnyCmd",
                                "DetectString",
                                detect_string,
@@ -141,6 +150,10 @@ ListSetDefaultParams( ListDefaultParamStruct* dps )
     WritePrivateProfileString( "AnyCmd",
                                "Command",
                                command_string,
+                               dps->DefaultIniName );
+    WritePrivateProfileString( "AnyCmd",
+                               "Stream",
+                               cmd,
                                dps->DefaultIniName );
 }
 
@@ -182,7 +195,7 @@ ListLoadNext( HWND parentWin, HWND listWin, char* fileToLoad, int showFlags)
 {
     sprintf_s( cmd, command_string, fileToLoad );
 
-    g_text = receive_text( cmd );
+    g_text = receive_text( cmd, streams );
     if ( g_text.empty() ) {
         return LISTPLUGIN_ERROR;
     }

@@ -146,6 +146,17 @@ Command=cmd.exe /c attrib %s<br/>
 </div>
 </div>
 <p>
+Find all procedures in TCL file. (Or, only show the lines containing specific text):
+</p>
+<div class="example">
+<h4 class="example">lsplugin.ini - Show the lines containing specific text</h4>
+<div class="example_code notranslate">
+[AnyCmd]<br/>
+DetectString=EXT=TCL<br/>
+Command=findstr /i "proc " %s<br/>
+</div>
+</div>
+<p>
 Compile .CPP file and show errors (if any):
 </p>
 <div class="example">

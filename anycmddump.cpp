@@ -35,13 +35,14 @@ THE SOFTWARE.
 #include <windows.h>
 #include <string>
 
+#include "anycmd.h"
 #include "resource.h"
 
 extern HINSTANCE hinst;
 extern HWND      listWin;
 extern char      command_string[];
 
-BOOL         createTargetProcess( const char* cmd );
+BOOL         createTargetProcess( const char* cmd, unsigned int streams );
 void         closeTargetProcess();
 void         getOutputFromChildProcess();
 DWORD WINAPI reader( LPVOID lpParameter );
@@ -61,7 +62,7 @@ static HANDLE g_hChildStd_OUT_Wr = 0;
 static std::string res;
 
 
-std::string receive_text( const char* cmd )
+std::string receive_text( const char* cmd, unsigned int streams )
 {
     SECURITY_ATTRIBUTES saAttr; 
 
@@ -81,7 +82,7 @@ std::string receive_text( const char* cmd )
 
     // Create the child process and get its output 
     res = "";
-    if ( createTargetProcess( cmd ) ) {
+    if ( createTargetProcess( cmd, streams ) ) {
         getOutputFromChildProcess();
     }
     closeTargetProcess();
@@ -93,7 +94,7 @@ std::string receive_text( const char* cmd )
 }
 
 
-BOOL createTargetProcess( const char* cmd )
+BOOL createTargetProcess( const char* cmd, unsigned int streams )
 {
     // Set up members of the PROCESS_INFORMATION structure. 
     ZeroMemory( &piProcInfo, sizeof( PROCESS_INFORMATION ) );
@@ -103,10 +104,20 @@ BOOL createTargetProcess( const char* cmd )
     STARTUPINFO siStartInfo;
     ZeroMemory( &siStartInfo, sizeof( STARTUPINFO ) );
     siStartInfo.cb          = sizeof( STARTUPINFO ); 
-    siStartInfo.hStdError   = g_hChildStd_OUT_Wr;
-    siStartInfo.hStdOutput  = g_hChildStd_OUT_Wr;
-    siStartInfo.hStdInput   = 0;
     siStartInfo.dwFlags    |= STARTF_USESTDHANDLES;
+    siStartInfo.hStdInput   = GetStdHandle( STD_INPUT_HANDLE );
+    if ( ( streams & ANYCMD_CATCH_STD_OUT ) != 0 ) {
+        siStartInfo.hStdOutput = g_hChildStd_OUT_Wr;
+    }
+    else {
+        siStartInfo.hStdOutput = GetStdHandle( STD_OUTPUT_HANDLE );
+    }
+    if ( ( streams & ANYCMD_CATCH_STD_ERR ) != 0 ) {
+        siStartInfo.hStdError = g_hChildStd_OUT_Wr;
+    }
+    else {
+        siStartInfo.hStdError = GetStdHandle( STD_ERROR_HANDLE );
+    }
 
     // Create the child process. 
     BOOL ret = CreateProcess( NULL, 
