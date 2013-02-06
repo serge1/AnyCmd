@@ -3,7 +3,209 @@
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
 <title>AnyCmd - Total Commander lister plugin</title>
-<link rel="stylesheet" href="style.css" type="text/css"/>
+
+<style type="text/css">
+/* 
+color:#ffffff;   white
+color:#e0e0e0;   light gray
+color:#f8f8f8;   light gray
+color:#003366;   dark blue
+color:#555555;   gray
+color:#ff9933;   light orange
+color:#cc3300;   red/brown/orange
+color:#660066;   purple
+color:#669900;   green
+*/
+
+a {
+	color:#003366;
+	text-decoration:underline;
+}
+
+a:hover {
+	color:#ff9933;
+}
+
+body {
+	font-family: verdana, tahoma, helvetica, arial, sans-serif;
+	font-size: 90%;
+	background-color:#ffffff;
+	margin: 1em;
+}
+
+pre {
+	font-family: courier, serif;
+	background-color:#f8f8f8;
+	margin: 1.5em;
+	font-size:90%;
+}
+
+ul {
+	list-style: circle outside;
+	font-stretch:extra-expanded;
+/*	font-size:90%;*/
+}
+
+ul.menu { /* inherits from ul */
+	padding-left: 1em; 
+}
+
+
+em {
+	color:#FF7700;
+	font-size:110%;
+}
+
+h1,h2,h3,h4{
+	color:#FF7700;
+}
+
+h1 {
+	border-color:#d0d0d0;
+	border-style:solid; 
+	border-width:1px; 
+	font-weight:bold;
+	padding: 0.2em;
+	background-color:#f8f8f8
+}
+
+h2 {
+	font-size:120%;
+	font-weight:bold;
+	border-bottom-style:solid; 
+	border-bottom-width:1px; 
+	border-bottom-color:#d0d0d0;
+}
+
+h3 {
+	font-size:110%;
+	font-weight:bold;
+	font-style:italic;
+}
+
+h4 {
+	font-size:100%;
+	font-weight:bold;
+	font-style:italic;
+}
+
+tt {
+	font-family: courier, serif;
+}
+
+tt.classname {
+	font-weight:bold;
+}
+
+tt.constant {
+	font-weight:bold;
+}
+
+
+p {
+	line-height: 1.5em;
+}
+
+
+p.author {
+/*	line-height: 0.5em; */
+	font-size:70%;
+}
+
+
+div.example
+{
+width:90%;
+color:#000000;
+background-color:#F6F4F0;
+margin:20px;
+padding:5px;
+border:1px solid #d4d4d4;
+background-image:-webkit-linear-gradient( #ffffff , #FF7700 100px);
+background-image:linear-gradient( #ffffff , #FF7700 100px);
+}
+
+
+div.example_code
+{
+width:98%;
+background-color:#ffffff;
+padding:5px;
+border:1px solid #d4d4d4;
+font-size:100%;
+font-family:"courier new";
+}
+
+
+div.example_result
+{
+background-color:#ffffff;
+padding:4px;
+border:1px solid #d4d4d4;
+width:98%;
+}
+
+
+div.code
+{
+width:100%;
+border:1px solid #d4d4d4;
+background-color:#F6F4F0;
+color:#444444;
+padding:5px;
+margin:0;
+}
+
+
+div.code div
+{
+font-size:90%;
+}
+
+
+div.example_code p,div.code p,div.code div
+{
+font-family:"courier new";
+}
+
+
+div.example_code th
+{
+text-align:left;
+}
+
+
+div.links{
+	float: left;
+	clear: left;
+	width: 12em;
+	background-color:#f8f8f8;
+	border-style:solid; 
+	border-width:1px; 
+	border-color:#d0d0d0;
+	margin-bottom: 0.5em;
+	padding: 0.5em 0.5em 0.5em 0.5em;	
+	margin: 0.5em 0.5em 0em 0em;
+}
+
+div.main{
+	border-style:solid; 
+	border-width:1px; 
+	border-color:#d0d0d0;
+	margin: 0.5em 0em 0.5em 14em;
+	padding: 0.5em 0.5em 0.5em 0.5em;
+}
+
+div.by{
+	line-height: 0.5em;
+	border-width:1px; 
+	border-color:#d0d0d0;
+	margin: 0.5em 0em 0.5em 14em;
+	padding: 0.5em 0.5em 0.5em 0.5em;
+}
+ </style>
+
+<!--link rel="stylesheet" href="style.css" type="text/css"/-->
 </head>
 
 <body>

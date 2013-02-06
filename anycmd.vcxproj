@@ -73,7 +73,6 @@
     <_ProjectFileVersion>11.0.50522.1</_ProjectFileVersion>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <OutDir>..\..\totalcmd\plugins\wlx\anycmd</OutDir>
     <IntDir>.\Release\</IntDir>
     <TargetName>anycmd</TargetName>
     <TargetExt>.wlx</TargetExt>
