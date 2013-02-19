@@ -1,5 +1,5 @@
 [plugininstall]
-description= AnyCmd lister plugin. Version 1.0
+description= AnyCmd lister plugin. Version 1.1
 type=wlx
 file=anycmd.wlx
 defaultdir=plugins\wlx\anycmd
