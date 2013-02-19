@@ -68,7 +68,7 @@ searchAndReplace( std::string& value, std::string const& search,
 { 
     std::string::size_type  next; 
 
-    for ( next = value.find( search );        // Try and find the first match 
+    for ( next = value.find( search );      // Try and find the first match 
         next != std::string::npos;          // next is npos if nothing was found 
         next = value.find( search, next )   // search for the next match starting after 
         // the last match that was found. 
@@ -81,6 +81,41 @@ searchAndReplace( std::string& value, std::string const& search,
             // This is the point were we start 
             // the next search from.  
     }
+}
+
+
+//---------------------------------------------------------------------------
+void
+find_and_substitute_env_vars( char* str, size_t size )
+{
+    std::string work( str );
+
+    bool found = true;
+    std::basic_string <char>::size_type start_from = 0;
+    while ( found ) {
+        found = false;
+        // Find first occurrence of '%' sign
+        std::basic_string <char>::size_type first = work.find( '%', start_from );
+        if ( first != std::string::npos ) {
+            // Find second occurrence of '%' sign
+            std::basic_string <char>::size_type second = work.find( '%', first + 1 );
+            if ( second != std::string::npos ) {
+                found      = true;
+                start_from = first + 1;
+
+                std::string var = work.substr( first + 1, second - first - 1 );
+
+                // Try to substitute the substring between two '%' signs
+                char buffer[MAX_PATH];
+                if ( GetEnvironmentVariable( var.c_str(), buffer, MAX_PATH ) != 0 ) {
+                    buffer[MAX_PATH - 1] = 0;
+                    work.replace( first, second - first + 1, buffer );
+                }
+            }
+        }
+    }
+    std::strncpy( str, work.c_str(), size );
+    str[size - 1] = 0;
 }
 
 
@@ -142,6 +177,7 @@ ListSetDefaultParams( ListDefaultParamStruct* dps )
     if ( ( streams & ( ANYCMD_CATCH_STD_OUT | ANYCMD_CATCH_STD_ERR ) ) == 0 ) {
         streams = ANYCMD_CATCH_STD_OUT | ANYCMD_CATCH_STD_ERR;
     }
+
     sprintf_s( cmd, "%d", streams );
     WritePrivateProfileString( "AnyCmd",
                                "DetectString",
@@ -155,6 +191,9 @@ ListSetDefaultParams( ListDefaultParamStruct* dps )
                                "Stream",
                                cmd,
                                dps->DefaultIniName );
+    
+    // Substitute environment variables within the command
+    find_and_substitute_env_vars( command_string, sizeof( command_string ) );
 }
 
 
@@ -193,9 +232,11 @@ HWND APIENTRY
 int APIENTRY
 ListLoadNext( HWND parentWin, HWND listWin, char* fileToLoad, int showFlags)
 {
-    sprintf_s( cmd, command_string, fileToLoad );
+    std::string cmd( command_string );
 
-    g_text = receive_text( cmd, streams );
+    searchAndReplace( cmd, "%s", fileToLoad );
+
+    g_text = receive_text( cmd.c_str(), streams );
     if ( g_text.empty() ) {
         return LISTPLUGIN_ERROR;
     }
