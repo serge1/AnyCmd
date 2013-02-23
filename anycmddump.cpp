@@ -200,6 +200,7 @@ CALLBACK dlgProc( HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam )
             break;
         }
         break;
+        
     default:
         return FALSE;
     }

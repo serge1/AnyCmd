@@ -80,11 +80,11 @@ searchAndReplace( std::string& value, std::string const& search,
         ) { 
             // Inside the loop. So we found a match. 
             if ( next == 0 || value[next - 1] != '\r' ) {
-                value.replace( next, search.length(), replace );   // Do the replacement. 
+                value.replace( next, search.length(), replace );  // Do the replacement. 
             }
-            next += replace.length();                          // Move to just after the replace 
-            // This is the point were we start 
-            // the next search from.  
+            // Move to just after the replace. This is the point were we start 
+            // the next search from. 
+            next += replace.length();
     }
 }
 
@@ -298,12 +298,16 @@ ListNotificationReceived( HWND listWin, int message, WPARAM wParam, LPARAM lPara
             return 0;
         }
         break;
+        
     case WM_NOTIFY:
         break;
+        
     case WM_MEASUREITEM:
         break;
+        
     case WM_DRAWITEM:
         break;
+        
     }
     return 0;
 }
@@ -317,6 +321,7 @@ ListSendCommand( HWND listWin, int command, int parameter )
     case lc_copy:
         SendMessage( listWin, WM_COPY, 0, 0 );
         return LISTPLUGIN_OK;
+
     case lc_newparams:
         HFONT font;
         if ( parameter & lcp_ansi ) {
@@ -328,9 +333,11 @@ ListSendCommand( HWND listWin, int command, int parameter )
         SendMessage( listWin, WM_SETFONT, (WPARAM)font, MAKELPARAM( true, 0 ) );
         PostMessage( GetParent( listWin ), WM_COMMAND, MAKELONG( 0, itm_next ), (LPARAM)listWin );
         return LISTPLUGIN_ERROR;
+        
     case lc_selectall:
         SendMessage( listWin, EM_SETSEL, 0, -1 );
         return LISTPLUGIN_OK;
+        
     case lc_setpercent:
         int firstvisible = (int)SendMessage( listWin, EM_GETFIRSTVISIBLELINE, 0, 0 );
         int linecount    = (int)SendMessage( listWin, EM_GETLINECOUNT, 0, 0 );
@@ -347,6 +354,7 @@ ListSendCommand( HWND listWin, int command, int parameter )
             return LISTPLUGIN_OK;
         }
         break;
+        
     }
 
     return LISTPLUGIN_ERROR;
