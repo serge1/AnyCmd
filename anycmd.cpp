@@ -39,6 +39,11 @@ THE SOFTWARE.
 
 #include "anycmd.h"
 
+#define PLUGIN_NAME        "AnyCmd"
+#define DETECT_STRING_KEY  "DetectString"
+#define COMMAND_STRING_KEY "Command"
+#define STREAM_SELECT_KEY  "Stream"
+
 HINSTANCE hinst;
 HWND      listWin = 0;
 
@@ -158,20 +163,20 @@ ListSetDefaultParams( ListDefaultParamStruct* dps )
     dps->PluginInterfaceVersionLow = ANYELF_VERSION_LOW;
     strlcpy( inifilename, dps->DefaultIniName, MAX_PATH-1 );
 
-    GetPrivateProfileString( "AnyCmd",
-                             "DetectString",
+    GetPrivateProfileString( PLUGIN_NAME,
+                             DETECT_STRING_KEY,
                              "EXT=TXT",
                              detect_string,
                              sizeof( detect_string ),
                              dps->DefaultIniName );
-    GetPrivateProfileString( "AnyCmd",
-                             "Command",
+    GetPrivateProfileString( PLUGIN_NAME,
+                             COMMAND_STRING_KEY,
                              "sort.exe %s",
                              command_string,
                              sizeof( command_string ),
                              dps->DefaultIniName );
-    streams = GetPrivateProfileInt( "AnyCmd",
-                                    "Stream",
+    streams = GetPrivateProfileInt( PLUGIN_NAME,
+                                    STREAM_SELECT_KEY,
                                     ANYCMD_CATCH_STD_OUT | ANYCMD_CATCH_STD_ERR,
                                     dps->DefaultIniName );
     if ( ( streams & ( ANYCMD_CATCH_STD_OUT | ANYCMD_CATCH_STD_ERR ) ) == 0 ) {
@@ -179,16 +184,16 @@ ListSetDefaultParams( ListDefaultParamStruct* dps )
     }
 
     sprintf_s( cmd, "%d", streams );
-    WritePrivateProfileString( "AnyCmd",
-                               "DetectString",
+    WritePrivateProfileString( PLUGIN_NAME,
+                               DETECT_STRING_KEY,
                                detect_string,
                                dps->DefaultIniName );
-    WritePrivateProfileString( "AnyCmd",
-                               "Command",
+    WritePrivateProfileString( PLUGIN_NAME,
+                               COMMAND_STRING_KEY,
                                command_string,
                                dps->DefaultIniName );
-    WritePrivateProfileString( "AnyCmd",
-                               "Stream",
+    WritePrivateProfileString( PLUGIN_NAME,
+                               STREAM_SELECT_KEY,
                                cmd,
                                dps->DefaultIniName );
     
