@@ -311,6 +311,7 @@ group. Initially, they are looking like this:
 [AnyCmd]<br/>
 DetectString=EXT=TXT<br/>
 Command=sort.exe %s<br/>
+Stream=3<br/>
 </div>
 </div>
 This setting permits to sort text files (files with .TXT extension). Modifying
@@ -348,7 +349,7 @@ Command=cmd.exe /c attrib %s<br/>
 </div>
 </div>
 <p>
-Find all procedures in TCL file. (Or, only show the lines containing specific text):
+Show only the lines containing specific text. For example, find all procedures in TCL file.
 </p>
 <div class="example">
 <h4 class="example">lsplugin.ini - Show the lines containing specific text</h4>
@@ -399,6 +400,28 @@ assembly listing for compiled .CPP file will be shown.
 The only requirement to invoked programs is that they should print out their
 output to the standard output stream. Your needs, creativity and fantasy will
 help you continue from this point. Enjoy!
+</p>
+
+<p>Please note - command line may contain environment variables:</p>
+<div class="example">
+<h4 class="example">Environment variables</h4>
+<div class="example_code notranslate">
+[AnyCmd]<br/>
+DetectString=EXT=TXT<br/>
+Command=%COMMANDER_PATH%\plugins\wlx\anycmd\myprog.exe %s<br/>
+Stream=3<br/>
+</div>
+</div>
+    
+<h3>
+Standard output and standard error streams
+</h3>
+
+<p>
+By default, the plugin redirects both standard output and error streams to the
+lister window. You may change this behavior. Stream selection is controlled by
+"Stream" key in the initialization file. Value '1' selects standard output;
+value '2' - standard error and '3' (default) - both streams.
 </p>
 
 <h2>
