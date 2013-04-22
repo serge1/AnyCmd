@@ -18,14 +18,11 @@ class Token {
                         OPEN_BR, CLOSE_BR, OPEN_BR_SQ, CLOSE_BR_SQ,
                         OP_NOT, OP_EQ, OP_NEQ, OP_AND, OP_OR, OP_LG, OP_SM };
 
-    Token() : type( Token::EMPTY ),
-              value_bool( false ), value_str( "" ), value_num( 0 ) {};
+    Token() : type( Token::EMPTY ), value( "" ) {};
 
   public:
     TokenType   type;
-    bool        value_bool;
-    std::string value_str;
-    int         value_num;
+    std::string value;
 };
 
 
@@ -70,7 +67,7 @@ class TCDetectStringLexer
         if ( get_next_word( word ) ) {
             for ( int i = 0; i < sizeof( words ) / sizeof( words[0] ); ++i ) {
                 if ( words[i].word == word ) {
-                    ret.type = words[i].type;
+                    ret.type                = words[i].type;
                     current_parse_position += word.length();
                     return ret;
                 }
@@ -78,6 +75,10 @@ class TCDetectStringLexer
         }
 
         if ( get_next_num( word ) ) {
+            ret.type                = Token::NUM;
+            ret.value               = word;
+            current_parse_position += word.length();
+            return ret;
         }
 
         if ( get_next_str( word ) ) {
@@ -85,8 +86,8 @@ class TCDetectStringLexer
 
         if ( current_parse_position + 1 < src.length() ) {
             if ( src.substr( current_parse_position, 2 ) == "!=" ) {
+                ret.type                = Token::OP_NEQ;
                 current_parse_position += 2;
-                ret.type = Token::OP_NEQ;
                 return ret;
             }
         }
@@ -124,8 +125,10 @@ class TCDetectStringLexer
 //------------------------------------------------------------------------------
     void skip_blanks()
     {
-        std::locale loc;
-        while ( std::isspace( src[current_parse_position], loc ) ) {
+        std::locale  loc;
+        unsigned int size = src.length();
+        while ( ( current_parse_position < size ) &&
+                std::isspace( src[current_parse_position], loc ) ) {
             ++current_parse_position;
         }
     }
@@ -135,9 +138,11 @@ class TCDetectStringLexer
     {
         bool ret = false;
 
-        std::locale loc;
-        unsigned int i = current_parse_position;
-        while ( std::isalpha( src[i], loc ) ) {
+        std::locale  loc;
+        unsigned int size = src.length();
+        unsigned int i    = current_parse_position;
+        while ( ( i < size ) &&
+                std::isalpha( src[i], loc ) ) {
             ++i;
         }
 
@@ -154,9 +159,11 @@ class TCDetectStringLexer
     {
         bool ret = false;
 
-        std::locale loc;
-        unsigned int i = current_parse_position;
-        while ( std::isdigit( src[i], loc ) ) {
+        std::locale  loc;
+        unsigned int size = src.length();
+        unsigned int i    = current_parse_position;
+        while ( ( i < size ) &&
+                std::isdigit( src[i], loc ) ) {
             ++i;
         }
 
@@ -286,6 +293,93 @@ BOOST_AUTO_TEST_CASE( test3 )
     BOOST_CHECK_EQUAL( tk.type, Token::EMPTY );
     tk = lexer.get_next_token();
     BOOST_CHECK_EQUAL( tk.type, Token::EMPTY );
+    tk = lexer.get_next_token();
+    BOOST_CHECK_EQUAL( tk.type, Token::EMPTY );
+}
+
+
+BOOST_AUTO_TEST_CASE( test4 )
+{
+    Token               tk;
+    TCDetectStringLexer lexer( "  [! SIZE 12 EXT 345 EXT 0 7890 11 = FIND 22MULTIMEDIA33!=44FORCE55" );
+
+    tk = lexer.get_next_token();
+    BOOST_CHECK_EQUAL( tk.type, Token::OPEN_BR_SQ );
+    tk = lexer.get_next_token();
+    BOOST_CHECK_EQUAL( tk.type, Token::OP_NOT );
+    tk = lexer.get_next_token();
+    BOOST_CHECK_EQUAL( tk.type, Token::FUNC_SIZE );
+    tk = lexer.get_next_token();
+    BOOST_CHECK_EQUAL( tk.type, Token::NUM );
+    BOOST_CHECK_EQUAL( tk.value, std::string( "12" ) );
+    tk = lexer.get_next_token();
+    BOOST_CHECK_EQUAL( tk.type, Token::FUNC_EXT );
+    tk = lexer.get_next_token();
+    BOOST_CHECK_EQUAL( tk.type, Token::NUM );
+    BOOST_CHECK_EQUAL( tk.value, std::string( "345" ) );
+    tk = lexer.get_next_token();
+    BOOST_CHECK_EQUAL( tk.type, Token::FUNC_EXT );
+    tk = lexer.get_next_token();
+    BOOST_CHECK_EQUAL( tk.type, Token::NUM );
+    BOOST_CHECK_EQUAL( tk.value, std::string( "0" ) );
+    tk = lexer.get_next_token();
+    BOOST_CHECK_EQUAL( tk.type, Token::NUM );
+    BOOST_CHECK_EQUAL( tk.value, std::string( "7890" ) );
+    tk = lexer.get_next_token();
+    BOOST_CHECK_EQUAL( tk.type, Token::NUM );
+    BOOST_CHECK_EQUAL( tk.value, std::string( "11" ) );
+    tk = lexer.get_next_token();
+    BOOST_CHECK_EQUAL( tk.type, Token::OP_EQ );
+    tk = lexer.get_next_token();
+    BOOST_CHECK_EQUAL( tk.type, Token::FUNC_FIND );
+    tk = lexer.get_next_token();
+    BOOST_CHECK_EQUAL( tk.type, Token::NUM );
+    BOOST_CHECK_EQUAL( tk.value, std::string( "22" ) );
+    tk = lexer.get_next_token();
+    BOOST_CHECK_EQUAL( tk.type, Token::FUNC_MULTIMEDIA );
+    tk = lexer.get_next_token();
+    BOOST_CHECK_EQUAL( tk.type, Token::NUM );
+    BOOST_CHECK_EQUAL( tk.value, std::string( "33" ) );
+    tk = lexer.get_next_token();
+    BOOST_CHECK_EQUAL( tk.type, Token::OP_NEQ );
+    tk = lexer.get_next_token();
+    BOOST_CHECK_EQUAL( tk.type, Token::NUM );
+    BOOST_CHECK_EQUAL( tk.value, std::string( "44" ) );
+    tk = lexer.get_next_token();
+    BOOST_CHECK_EQUAL( tk.type, Token::FUNC_FORCE );
+    tk = lexer.get_next_token();
+    BOOST_CHECK_EQUAL( tk.type, Token::NUM );
+    BOOST_CHECK_EQUAL( tk.value, std::string( "55" ) );
+    tk = lexer.get_next_token();
+    BOOST_CHECK_EQUAL( tk.type, Token::EMPTY );
+}
+
+
+BOOST_AUTO_TEST_CASE( test5 )
+{
+    Token               tk;
+    TCDetectStringLexer lexer( "  EXT=\"CPP\"|SIZE= \"aaa bbb \" &FIND( \"my12 34 FIND\")" );
+
+    tk = lexer.get_next_token();
+    BOOST_CHECK_EQUAL( tk.type, Token::FUNC_EXT );
+    tk = lexer.get_next_token();
+    BOOST_CHECK_EQUAL( tk.type, Token::OP_EQ );
+    tk = lexer.get_next_token();
+    BOOST_CHECK_EQUAL( tk.type, Token::STRING );
+    BOOST_CHECK_EQUAL( tk.value, std::string( "CPP" ) );
+    tk = lexer.get_next_token();
+    BOOST_CHECK_EQUAL( tk.type, Token::OP_OR );
+    tk = lexer.get_next_token();
+    BOOST_CHECK_EQUAL( tk.type, Token::FUNC_SIZE );
+    tk = lexer.get_next_token();
+    BOOST_CHECK_EQUAL( tk.type, Token::OP_EQ );
+    tk = lexer.get_next_token();
+    BOOST_CHECK_EQUAL( tk.type, Token::STRING );
+    BOOST_CHECK_EQUAL( tk.value, std::string( "aaa bbb" ) );
+    tk = lexer.get_next_token();
+    BOOST_CHECK_EQUAL( tk.type, Token::OP_AND );
+    tk = lexer.get_next_token();
+    BOOST_CHECK_EQUAL( tk.type, Token::FUNC_FIND );
     tk = lexer.get_next_token();
     BOOST_CHECK_EQUAL( tk.type, Token::EMPTY );
 }
