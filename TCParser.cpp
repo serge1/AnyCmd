@@ -1,51 +1,46 @@
 #define BOOST_TEST_MODULE TCParser
 #include <boost/test/unit_test.hpp>
-#define private public
+//#define private public
 
 
 #include <iostream>
 #include <string>
 #include <locale>
 
-class TCParser
+
+//------------------------------------------------------------------------------
+class Token {
+  public:
+    enum TokenType { EMPTY,
+                        NUM, STRING, BOOLEAN,
+                        FUNC_EXT, FUNC_SIZE, FUNC_FORCE, FUNC_MULTIMEDIA,
+                        FUNC_FIND, FUNC_FINDI,
+                        OPEN_BR, CLOSE_BR, OPEN_BR_SQ, CLOSE_BR_SQ,
+                        OP_NOT, OP_EQ, OP_NEQ, OP_AND, OP_OR, OP_LG, OP_SM };
+
+    Token() : type( Token::EMPTY ),
+              value_bool( false ), value_str( "" ), value_num( 0 ) {};
+
+  public:
+    TokenType   type;
+    bool        value_bool;
+    std::string value_str;
+    int         value_num;
+};
+
+
+//------------------------------------------------------------------------------
+class TCDetectStringLexer
 {
   public:
-    TCParser()
+//------------------------------------------------------------------------------
+    TCDetectStringLexer( std::string source )
     {
-    }
-
-    bool parse( std::string str )
-    {
-        src                    = str;
+        src                    = source;
         current_parse_position = 0;
-        Token token            = get_next_token();
-        while ( token.type != Token::EMPTY ) {
-            std::cout << token.type << " ";
-            token = get_next_token();
-        }
-        return true;
     }
 
-    class Token {
-      public:
-        enum TokenType { EMPTY, NUM, STRING, BOOLEAN, FUNC, OPEN_BR, CLOSE_BR, OP_NOT, OP_EQ, OP_NEQ, OP_AND, OP_OR, OP_LG, OP_SM };
-        Token() : type( Token::EMPTY ), value_bool( false ), value_str( "" ), value_num( 0 ) {};
-
-      public:
-        TokenType   type;
-        bool        value_bool;
-        std::string value_str;
-        int         value_num;
-    };
-
-    void skip_blanks()
-    {
-        std::locale loc;
-        while ( std::isspace( src[current_parse_position], loc ) ) {
-            ++current_parse_position;
-        }
-    }
-
+//------------------------------------------------------------------------------
     Token get_next_token()
     {
         Token ret;
@@ -57,6 +52,37 @@ class TCParser
 
         skip_blanks();
 
+        struct word_to_token
+        {
+            std::string      word;
+            Token::TokenType type;
+        };
+        word_to_token words[] = {
+            { "EXT" ,       Token::FUNC_EXT        },
+            { "SIZE",       Token::FUNC_SIZE       },
+            { "FORCE",      Token::FUNC_FORCE      },
+            { "MULTIMEDIA", Token::FUNC_MULTIMEDIA },
+            { "FIND",       Token::FUNC_FIND       },
+            { "FINDI",      Token::FUNC_FINDI      },
+        };
+
+        std::string word;
+        if ( get_next_word( word ) ) {
+            for ( int i = 0; i < sizeof( words ) / sizeof( words[0] ); ++i ) {
+                if ( words[i].word == word ) {
+                    ret.type = words[i].type;
+                    current_parse_position += word.length();
+                    return ret;
+                }
+            }
+        }
+
+        if ( get_next_num( word ) ) {
+        }
+
+        if ( get_next_str( word ) ) {
+        }
+
         if ( current_parse_position + 1 < src.length() ) {
             if ( src.substr( current_parse_position, 2 ) == "!=" ) {
                 current_parse_position += 2;
@@ -65,40 +91,87 @@ class TCParser
             }
         }
 
-        switch ( src[current_parse_position] ) {
-        case '!':
-            ret.type = Token::OP_NOT;
-            ++current_parse_position;
-            return ret;
-        case '(':
-            ret.type = Token::OPEN_BR;
-            ++current_parse_position;
-            return ret;
-        case ')':
-            ret.type = Token::CLOSE_BR;
-            ++current_parse_position;
-            return ret;
-        case '&':
-            ret.type = Token::OP_AND;
-            ++current_parse_position;
-            return ret;
-        case '|':
-            ret.type = Token::OP_OR;
-            ++current_parse_position;
-            return ret;
-        case '=':
-            ret.type = Token::OP_EQ;
-            ++current_parse_position;
-            return ret;
-        case '<':
-            ret.type = Token::OP_SM;
-            ++current_parse_position;
-            return ret;
-        case '>':
-            ret.type = Token::OP_LG;
-            ++current_parse_position;
-            return ret;
+        struct sym_to_token
+        {
+            char             sym;
+            Token::TokenType type;
+        };
+        sym_to_token symbols[] = {
+            { '!', Token::OP_NOT      },
+            { '&', Token::OP_AND      },
+            { '|', Token::OP_OR       },
+            { '=', Token::OP_EQ       },
+            { '<', Token::OP_SM       },
+            { '>', Token::OP_LG       },
+            { '(', Token::OPEN_BR     },
+            { ')', Token::CLOSE_BR    },
+            { '[', Token::OPEN_BR_SQ  },
+            { ']', Token::CLOSE_BR_SQ },
+        };
+
+        for ( int i = 0; i < sizeof( symbols ) / sizeof( symbols[0] ); ++i ) {
+            if ( src[current_parse_position] == symbols[i].sym ) {
+                ret.type = symbols[i].type;
+                ++current_parse_position;
+                return ret;
+            }
         }
+
+        return ret;
+    }
+
+  private:
+//------------------------------------------------------------------------------
+    void skip_blanks()
+    {
+        std::locale loc;
+        while ( std::isspace( src[current_parse_position], loc ) ) {
+            ++current_parse_position;
+        }
+    }
+
+//------------------------------------------------------------------------------
+    bool get_next_word( std::string& word )
+    {
+        bool ret = false;
+
+        std::locale loc;
+        unsigned int i = current_parse_position;
+        while ( std::isalpha( src[i], loc ) ) {
+            ++i;
+        }
+
+        word.clear();
+        if ( i != current_parse_position ) {
+            word = src.substr( current_parse_position, i - current_parse_position );
+        }
+
+        return !word.empty();
+    }
+
+//------------------------------------------------------------------------------
+    bool get_next_num( std::string& word )
+    {
+        bool ret = false;
+
+        std::locale loc;
+        unsigned int i = current_parse_position;
+        while ( std::isdigit( src[i], loc ) ) {
+            ++i;
+        }
+
+        word.clear();
+        if ( i != current_parse_position ) {
+            word = src.substr( current_parse_position, i - current_parse_position );
+        }
+
+        return !word.empty();
+    }
+
+//------------------------------------------------------------------------------
+    bool get_next_str( std::string& word )
+    {
+        bool ret = false;
 
         return ret;
     }
@@ -109,32 +182,110 @@ class TCParser
 };
 
 
+//------------------------------------------------------------------------------
+class TCParser
+{
+  public:
+//------------------------------------------------------------------------------
+    TCParser()
+    {
+    }
+
+//------------------------------------------------------------------------------
+    bool parse( std::string str )
+    {
+        TCDetectStringLexer lexer( str );
+        Token token = lexer.get_next_token();
+        while ( token.type != Token::EMPTY ) {
+            std::cout << token.type << " ";
+            token = lexer.get_next_token();
+        }
+        return true;
+    }
+};
+
+
 BOOST_AUTO_TEST_CASE( test1 )
 {
-    TCParser parser;
+    Token               tk;
+    TCDetectStringLexer lexer( "  [! ( = ) != &|=<     >]  " );
 
-    parser.src                    = "  ! ( = ) != &|=<     >";
-    parser.current_parse_position = 0;
+    tk = lexer.get_next_token();
+    BOOST_CHECK_EQUAL( tk.type, Token::OPEN_BR_SQ );
+    tk = lexer.get_next_token();
+    BOOST_CHECK_EQUAL( tk.type, Token::OP_NOT );
+    tk = lexer.get_next_token();
+    BOOST_CHECK_EQUAL( tk.type, Token::OPEN_BR );
+    tk = lexer.get_next_token();
+    BOOST_CHECK_EQUAL( tk.type, Token::OP_EQ );
+    tk = lexer.get_next_token();
+    BOOST_CHECK_EQUAL( tk.type, Token::CLOSE_BR );
+    tk = lexer.get_next_token();
+    BOOST_CHECK_EQUAL( tk.type, Token::OP_NEQ );
+    tk = lexer.get_next_token();
+    BOOST_CHECK_EQUAL( tk.type, Token::OP_AND );
+    tk = lexer.get_next_token();
+    BOOST_CHECK_EQUAL( tk.type, Token::OP_OR );
+    tk = lexer.get_next_token();
+    BOOST_CHECK_EQUAL( tk.type, Token::OP_EQ );
+    tk = lexer.get_next_token();
+    BOOST_CHECK_EQUAL( tk.type, Token::OP_SM );
+    tk = lexer.get_next_token();
+    BOOST_CHECK_EQUAL( tk.type, Token::OP_LG );
+    tk = lexer.get_next_token();
+    BOOST_CHECK_EQUAL( tk.type, Token::CLOSE_BR_SQ );
+    tk = lexer.get_next_token();
+    BOOST_CHECK_EQUAL( tk.type, Token::EMPTY );
+}
 
-    TCParser::Token tk;
-    tk = parser.get_next_token();
-    BOOST_CHECK_EQUAL( tk.type, TCParser::Token::OP_NOT );
-    tk = parser.get_next_token();
-    BOOST_CHECK_EQUAL( tk.type, TCParser::Token::OPEN_BR );
-    tk = parser.get_next_token();
-    BOOST_CHECK_EQUAL( tk.type, TCParser::Token::OP_EQ );
-    tk = parser.get_next_token();
-    BOOST_CHECK_EQUAL( tk.type, TCParser::Token::CLOSE_BR );
-    tk = parser.get_next_token();
-    BOOST_CHECK_EQUAL( tk.type, TCParser::Token::OP_NEQ );
-    tk = parser.get_next_token();
-    BOOST_CHECK_EQUAL( tk.type, TCParser::Token::OP_AND );
-    tk = parser.get_next_token();
-    BOOST_CHECK_EQUAL( tk.type, TCParser::Token::OP_OR );
-    tk = parser.get_next_token();
-    BOOST_CHECK_EQUAL( tk.type, TCParser::Token::OP_EQ );
-    tk = parser.get_next_token();
-    BOOST_CHECK_EQUAL( tk.type, TCParser::Token::OP_SM );
-    tk = parser.get_next_token();
-    BOOST_CHECK_EQUAL( tk.type, TCParser::Token::OP_LG );
+
+BOOST_AUTO_TEST_CASE( test2 )
+{
+    Token               tk;
+    TCDetectStringLexer lexer( "  [! SIZE EXT EXT = FIND MULTIMEDIA!=FORCE" );
+
+    tk = lexer.get_next_token();
+    BOOST_CHECK_EQUAL( tk.type, Token::OPEN_BR_SQ );
+    tk = lexer.get_next_token();
+    BOOST_CHECK_EQUAL( tk.type, Token::OP_NOT );
+    tk = lexer.get_next_token();
+    BOOST_CHECK_EQUAL( tk.type, Token::FUNC_SIZE );
+    tk = lexer.get_next_token();
+    BOOST_CHECK_EQUAL( tk.type, Token::FUNC_EXT );
+    tk = lexer.get_next_token();
+    BOOST_CHECK_EQUAL( tk.type, Token::FUNC_EXT );
+    tk = lexer.get_next_token();
+    BOOST_CHECK_EQUAL( tk.type, Token::OP_EQ );
+    tk = lexer.get_next_token();
+    BOOST_CHECK_EQUAL( tk.type, Token::FUNC_FIND );
+    tk = lexer.get_next_token();
+    BOOST_CHECK_EQUAL( tk.type, Token::FUNC_MULTIMEDIA );
+    tk = lexer.get_next_token();
+    BOOST_CHECK_EQUAL( tk.type, Token::OP_NEQ );
+    tk = lexer.get_next_token();
+    BOOST_CHECK_EQUAL( tk.type, Token::FUNC_FORCE );
+    tk = lexer.get_next_token();
+    BOOST_CHECK_EQUAL( tk.type, Token::EMPTY );
+}
+
+
+BOOST_AUTO_TEST_CASE( test3 )
+{
+    Token               tk;
+    TCDetectStringLexer lexer( "  [! SIZE EXTI EXT =" );
+
+    tk = lexer.get_next_token();
+    BOOST_CHECK_EQUAL( tk.type, Token::OPEN_BR_SQ );
+    tk = lexer.get_next_token();
+    BOOST_CHECK_EQUAL( tk.type, Token::OP_NOT );
+    tk = lexer.get_next_token();
+    BOOST_CHECK_EQUAL( tk.type, Token::FUNC_SIZE );
+    tk = lexer.get_next_token();
+    BOOST_CHECK_EQUAL( tk.type, Token::EMPTY );
+    tk = lexer.get_next_token();
+    BOOST_CHECK_EQUAL( tk.type, Token::EMPTY );
+    tk = lexer.get_next_token();
+    BOOST_CHECK_EQUAL( tk.type, Token::EMPTY );
+    tk = lexer.get_next_token();
+    BOOST_CHECK_EQUAL( tk.type, Token::EMPTY );
 }
