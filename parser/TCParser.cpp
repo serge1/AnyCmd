@@ -8,6 +8,30 @@
 #include <locale>
 
 
+//---------------------------------------------------------------------------
+static void
+searchAndReplace( std::string& value, std::string const& search,
+                  std::string const& replace ) 
+{ 
+    std::string::size_type  next; 
+
+    for ( next = value.find( search );      // Try and find the first match 
+        next != std::string::npos;          // next is npos if nothing was found 
+        next = value.find( search, next )   // search for the next match starting after 
+        // the last match that was found. 
+        ) { 
+            // Inside the loop. So we found a match. 
+            if ( next == 0 || value[next - 1] != '\r' ) {
+                value.replace( next, search.length(), replace );  // Do the replacement. 
+            }
+            // Move to just after the replace. This is the point were we start 
+            // the next search from. 
+            next += replace.length();
+    }
+}
+
+
+
 //------------------------------------------------------------------------------
 class Token {
   public:
@@ -84,7 +108,6 @@ class TCDetectStringLexer
         if ( get_next_str( word ) ) {
             ret.type                = Token::STRING;
             ret.value               = word;
-            current_parse_position += word.length() + 2;
             return ret;
         }
 
@@ -193,8 +216,10 @@ class TCDetectStringLexer
         unsigned int size = src.length();
         unsigned int i    = current_parse_position + 1;
 
-        while ( ( i < size ) &&
-                ( src[i] != '"' ) ) {
+        while ( i < size ) {
+            if ( src[i] == '"' && src[i-1] != '\\') {
+                break;
+            }
             ++i;
         }
 
@@ -202,9 +227,12 @@ class TCDetectStringLexer
         if ( i < size ) {
             word = src.substr( current_parse_position + 1,
                                i - current_parse_position - 1 );
+            current_parse_position += word.length() + 2;
+            searchAndReplace( word, "\\\"", "\"" );
+            return true;
         }
 
-        return true;
+        return false;
     }
 
   private:
@@ -382,7 +410,7 @@ BOOST_AUTO_TEST_CASE( test4 )
 BOOST_AUTO_TEST_CASE( test5 )
 {
     Token               tk;
-    TCDetectStringLexer lexer( "  EXT=\"CPP\"|SIZE= \"aaa bbb \" &FIND( \"my12 34 FIND\")" );
+    TCDetectStringLexer lexer( "  EXT=\"CPP\"|SIZE= \"aaa bbb \" &FIND( \"my12 34\\\" FIND\")" );
 
     tk = lexer.get_next_token();
     BOOST_CHECK_EQUAL( tk.type, Token::FUNC_EXT );
@@ -408,7 +436,7 @@ BOOST_AUTO_TEST_CASE( test5 )
     BOOST_CHECK_EQUAL( tk.type, Token::OPEN_BR );
     tk = lexer.get_next_token();
     BOOST_CHECK_EQUAL( tk.type, Token::STRING );
-    BOOST_CHECK_EQUAL( tk.value, std::string( "my12 34 FIND" ) );
+    BOOST_CHECK_EQUAL( tk.value, std::string( "my12 34\" FIND" ) );
     tk = lexer.get_next_token();
     BOOST_CHECK_EQUAL( tk.type, Token::CLOSE_BR );
     tk = lexer.get_next_token();
