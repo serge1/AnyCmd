@@ -82,6 +82,10 @@ class TCDetectStringLexer
         }
 
         if ( get_next_str( word ) ) {
+            ret.type                = Token::STRING;
+            ret.value               = word;
+            current_parse_position += word.length() + 2;
+            return ret;
         }
 
         if ( current_parse_position + 1 < src.length() ) {
@@ -136,14 +140,16 @@ class TCDetectStringLexer
 //------------------------------------------------------------------------------
     bool get_next_word( std::string& word )
     {
-        bool ret = false;
-
         std::locale  loc;
         unsigned int size = src.length();
         unsigned int i    = current_parse_position;
         while ( ( i < size ) &&
                 std::isalpha( src[i], loc ) ) {
             ++i;
+        }
+
+        if ( ( i < size ) && std::isdigit( src[i], loc ) ) {
+            return false; 
         }
 
         word.clear();
@@ -157,14 +163,16 @@ class TCDetectStringLexer
 //------------------------------------------------------------------------------
     bool get_next_num( std::string& word )
     {
-        bool ret = false;
-
         std::locale  loc;
         unsigned int size = src.length();
         unsigned int i    = current_parse_position;
         while ( ( i < size ) &&
                 std::isdigit( src[i], loc ) ) {
             ++i;
+        }
+
+        if ( ( i < size ) && std::isalpha( src[i], loc ) ) {
+            return false; 
         }
 
         word.clear();
@@ -178,9 +186,25 @@ class TCDetectStringLexer
 //------------------------------------------------------------------------------
     bool get_next_str( std::string& word )
     {
-        bool ret = false;
+        if ( src[current_parse_position] != '"' ) {
+            return false;
+        }
 
-        return ret;
+        unsigned int size = src.length();
+        unsigned int i    = current_parse_position + 1;
+
+        while ( ( i < size ) &&
+                ( src[i] != '"' ) ) {
+            ++i;
+        }
+
+        word.clear();
+        if ( i < size ) {
+            word = src.substr( current_parse_position + 1,
+                               i - current_parse_position - 1 );
+        }
+
+        return true;
     }
 
   private:
@@ -301,7 +325,7 @@ BOOST_AUTO_TEST_CASE( test3 )
 BOOST_AUTO_TEST_CASE( test4 )
 {
     Token               tk;
-    TCDetectStringLexer lexer( "  [! SIZE 12 EXT 345 EXT 0 7890 11 = FIND 22MULTIMEDIA33!=44FORCE55" );
+    TCDetectStringLexer lexer( "  [! SIZE 12 EXT 345 EXT 0 7890 11 = FIND 22 MULTIMEDIA 33!=44 FORCE 55" );
 
     tk = lexer.get_next_token();
     BOOST_CHECK_EQUAL( tk.type, Token::OPEN_BR_SQ );
@@ -375,11 +399,18 @@ BOOST_AUTO_TEST_CASE( test5 )
     BOOST_CHECK_EQUAL( tk.type, Token::OP_EQ );
     tk = lexer.get_next_token();
     BOOST_CHECK_EQUAL( tk.type, Token::STRING );
-    BOOST_CHECK_EQUAL( tk.value, std::string( "aaa bbb" ) );
+    BOOST_CHECK_EQUAL( tk.value, std::string( "aaa bbb " ) );
     tk = lexer.get_next_token();
     BOOST_CHECK_EQUAL( tk.type, Token::OP_AND );
     tk = lexer.get_next_token();
     BOOST_CHECK_EQUAL( tk.type, Token::FUNC_FIND );
+    tk = lexer.get_next_token();
+    BOOST_CHECK_EQUAL( tk.type, Token::OPEN_BR );
+    tk = lexer.get_next_token();
+    BOOST_CHECK_EQUAL( tk.type, Token::STRING );
+    BOOST_CHECK_EQUAL( tk.value, std::string( "my12 34 FIND" ) );
+    tk = lexer.get_next_token();
+    BOOST_CHECK_EQUAL( tk.type, Token::CLOSE_BR );
     tk = lexer.get_next_token();
     BOOST_CHECK_EQUAL( tk.type, Token::EMPTY );
 }
