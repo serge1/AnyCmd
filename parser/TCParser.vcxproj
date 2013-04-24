@@ -78,7 +78,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="TCParser.cpp" />
+    <ClCompile Include="TCParserTest.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="TCDetectStringParser.hpp" />

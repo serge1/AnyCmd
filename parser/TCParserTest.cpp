@@ -5,33 +5,176 @@
 #include "TCDetectStringParser.hpp"
 
 
+#define GET_AND_EXPECT( token, value2 ) \
+    token = lexer.get_next_token();     \
+    if ( token.type != value2 ) return false;
+
+
 //------------------------------------------------------------------------------
-class TCParser
+//          expr0 -> expr1 [OP_EQ  expr1]*
+//          expr1 -> expr2 [OP_NEQ expr2]*
+//          expr2 -> expr3 [OP_SM  expr3]*
+//          expr3 -> expr4 [OP_LG  expr4]*
+//          expr4 -> expr5 [OP_AND expr5]*
+//          expr5 -> term  [OP_OR  term ]*
+//
+//          term -> FUNC(EXT, SIZE, FORCE, MULTIMEDIA)
+//               -> FUNC(FIND, FINDI) OPEN_BR STRING CLOSE_BR
+//               -> NUM
+//               -> STRING
+//               -> OPEN_BR_SQ NUM CLOSE_BR_SQ
+//               -> OPEN_BR expr CLOSE_BR
+//               -> OP_NOT OPEN_BR expr CLOSE_BR
+//------------------------------------------------------------------------------
+class TCDetectStringParser
 {
   public:
 //------------------------------------------------------------------------------
-    TCParser()
+    TCDetectStringParser()
     {
     }
 
 //------------------------------------------------------------------------------
     bool parse( std::string str )
     {
-        TCDetectStringLexer lexer( str );
-        Token token = lexer.get_next_token();
-        while ( token.type != Token::EMPTY ) {
-            std::cout << token.type << " ";
-            token = lexer.get_next_token();
-        }
-        return true;
+        bool ret = false;
+
+        lexer.set_text( str );
+
+        ret = parse_expr( 0 );
+
+        return ret;
     }
+
+  private:
+//------------------------------------------------------------------------------
+    const static int max_precidence = 5;
+      
+//------------------------------------------------------------------------------
+    bool parse_expr( int precidence )
+    {
+        bool             ret;
+        Token            tk;
+        Token::TokenType opers[] = { Token::OP_EQ,
+                                     Token::OP_NEQ,
+                                     Token::OP_SM,
+                                     Token::OP_LG,
+                                     Token::OP_AND,
+                                     Token::OP_OR };
+
+        do {
+            if ( precidence != max_precidence ) {
+                ret = parse_expr( precidence + 1 );
+            }
+            else {
+                ret = parse_term();
+            }
+
+            if ( ret ) {
+                tk = lexer.get_next_token();
+                if ( ( tk.type == Token::EMPTY ) ||
+                     ( tk.type != opers[precidence] ) ) {
+                    break;
+                }
+            }
+        } while ( ret );
+
+        if ( ret && (precidence == 0) && ( tk.type != Token::EMPTY ) ) {
+            ret = false;
+        }
+
+        return ret;
+    }
+
+//------------------------------------------------------------------------------
+    bool parse_term()
+    {
+        bool ret;
+
+        Token tk = lexer.get_next_token();
+        switch ( tk.type )
+        {
+        case Token::FUNC_EXT:
+        case Token::FUNC_SIZE:
+        case Token::FUNC_FORCE:
+        case Token::FUNC_MULTIMEDIA:
+            ret = true;
+            break;
+        case Token::FUNC_FIND:
+        case Token::FUNC_FINDI:
+            GET_AND_EXPECT( tk, Token::OPEN_BR );
+            GET_AND_EXPECT( tk, Token::STRING );
+            {
+                ret = true;
+            }
+            GET_AND_EXPECT( tk, Token::CLOSE_BR );
+            break;
+        case Token::NUM:
+            ret = true;
+            break;
+        case Token::STRING:
+            ret = true;
+            break;
+        case Token::OPEN_BR_SQ:
+            GET_AND_EXPECT( tk, Token::NUM );
+            {
+                ret = true;
+            }
+            GET_AND_EXPECT( tk, Token::CLOSE_BR_SQ );
+            break;
+        default:
+            ret = false;
+        }
+
+        return ret;
+    }
+
+    TCDetectStringLexer lexer;
 };
 
 
-BOOST_AUTO_TEST_CASE( test1 )
+BOOST_AUTO_TEST_CASE( parser_test1 )
+{
+    TCDetectStringParser parser;
+
+    BOOST_CHECK_EQUAL( parser.parse( "EXT" ), true );
+    BOOST_CHECK_EQUAL( parser.parse( "SIZE" ), true );
+    BOOST_CHECK_EQUAL( parser.parse( "FORCE" ), true );
+    BOOST_CHECK_EQUAL( parser.parse( "MULTIMEDIA" ), true );
+    BOOST_CHECK_EQUAL( parser.parse( "FIND( \"Hello\")" ), true );
+    BOOST_CHECK_EQUAL( parser.parse( "FINDI(\"Hello\" )" ), true );
+    BOOST_CHECK_EQUAL( parser.parse( "0" ), true );
+    BOOST_CHECK_EQUAL( parser.parse( "\"My string\"" ), true );
+    BOOST_CHECK_EQUAL( parser.parse( "[0]" ), true );
+
+    BOOST_CHECK_EQUAL( parser.parse( "EXT1" ), false );
+    BOOST_CHECK_EQUAL( parser.parse( "1SIZE" ), false );
+    BOOST_CHECK_EQUAL( parser.parse( "FORCE(" ), false );
+    BOOST_CHECK_EQUAL( parser.parse( "MULTIMEDIA)" ), false );
+    BOOST_CHECK_EQUAL( parser.parse( "FIND()" ), false );
+    BOOST_CHECK_EQUAL( parser.parse( "FINDI(" ), false );
+    BOOST_CHECK_EQUAL( parser.parse( "-2" ), false );
+    BOOST_CHECK_EQUAL( parser.parse( "\"My string" ), false );
+    BOOST_CHECK_EQUAL( parser.parse( "[0" ), false );
+}
+
+
+BOOST_AUTO_TEST_CASE( parser_test2 )
+{
+    TCDetectStringParser parser;
+
+    BOOST_CHECK_EQUAL( parser.parse( "EXT=\"CPP\"" ), true );
+    BOOST_CHECK_EQUAL( parser.parse( "EXT=\"CPP\" | EXT=\"EXE\" | EXT=\"BAT\"" ), true );
+    BOOST_CHECK_EQUAL( parser.parse( "SIZE > 100" ), true );
+    BOOST_CHECK_EQUAL( parser.parse( "SIZE > 100 | FORCE" ), true );
+}
+
+
+BOOST_AUTO_TEST_CASE( lexer_test1 )
 {
     Token               tk;
-    TCDetectStringLexer lexer( "  [! ( = ) != &|=<     >]  " );
+    TCDetectStringLexer lexer;
+    lexer.set_text( "  [! ( = ) != &|=<     >]  " );
 
     tk = lexer.get_next_token();
     BOOST_CHECK_EQUAL( tk.type, Token::OPEN_BR_SQ );
@@ -62,10 +205,11 @@ BOOST_AUTO_TEST_CASE( test1 )
 }
 
 
-BOOST_AUTO_TEST_CASE( test2 )
+BOOST_AUTO_TEST_CASE( lexer_test2 )
 {
     Token               tk;
-    TCDetectStringLexer lexer( "  [! SIZE EXT EXT = FIND MULTIMEDIA!=FORCE" );
+    TCDetectStringLexer lexer;
+    lexer.set_text( "  [! SIZE EXT EXT = FIND MULTIMEDIA!=FORCE" );
 
     tk = lexer.get_next_token();
     BOOST_CHECK_EQUAL( tk.type, Token::OPEN_BR_SQ );
@@ -92,10 +236,11 @@ BOOST_AUTO_TEST_CASE( test2 )
 }
 
 
-BOOST_AUTO_TEST_CASE( test3 )
+BOOST_AUTO_TEST_CASE( lexer_test3 )
 {
     Token               tk;
-    TCDetectStringLexer lexer( "  [! SIZE EXTI EXT =" );
+    TCDetectStringLexer lexer;
+    lexer.set_text( "  [! SIZE EXTI EXT =" );
 
     tk = lexer.get_next_token();
     BOOST_CHECK_EQUAL( tk.type, Token::OPEN_BR_SQ );
@@ -114,10 +259,11 @@ BOOST_AUTO_TEST_CASE( test3 )
 }
 
 
-BOOST_AUTO_TEST_CASE( test4 )
+BOOST_AUTO_TEST_CASE( lexer_test4 )
 {
     Token               tk;
-    TCDetectStringLexer lexer( "  [! SIZE 12 EXT 345 EXT 0 7890 11 = FIND 22 MULTIMEDIA 33!=44 FORCE 55" );
+    TCDetectStringLexer lexer;
+    lexer.set_text( "  [! SIZE 12 EXT 345 EXT 0 7890 11 = FIND 22 MULTIMEDIA 33!=44 FORCE 55" );
 
     tk = lexer.get_next_token();
     BOOST_CHECK_EQUAL( tk.type, Token::OPEN_BR_SQ );
@@ -171,10 +317,11 @@ BOOST_AUTO_TEST_CASE( test4 )
 }
 
 
-BOOST_AUTO_TEST_CASE( test5 )
+BOOST_AUTO_TEST_CASE( lexer_test5 )
 {
     Token               tk;
-    TCDetectStringLexer lexer( "  EXT=\"CPP\"|SIZE= \"aaa bbb \" &FIND( \"my12 34\\\" FIND\")" );
+    TCDetectStringLexer lexer;
+    lexer.set_text( "  EXT=\"CPP\"|SIZE= \"aaa bbb \" &FIND( \"my12 34\\\" FIND\")" );
 
     tk = lexer.get_next_token();
     BOOST_CHECK_EQUAL( tk.type, Token::FUNC_EXT );

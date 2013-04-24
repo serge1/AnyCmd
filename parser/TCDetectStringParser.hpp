@@ -51,7 +51,7 @@ class TCDetectStringLexer
 {
   public:
 //------------------------------------------------------------------------------
-    TCDetectStringLexer( std::string source )
+    void set_text( std::string source )
     {
         src                    = source;
         current_parse_position = 0;
