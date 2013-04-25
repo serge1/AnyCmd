@@ -41,6 +41,8 @@ class TCDetectStringParser
 
         lexer.set_text( str );
 
+        tk = lexer.get_next_token();
+
         ret = parse_expr( 0 );
 
         return ret;
@@ -53,8 +55,7 @@ class TCDetectStringParser
 //------------------------------------------------------------------------------
     bool parse_expr( int precidence )
     {
-        bool             ret;
-        Token            tk;
+        bool             ret     = false;
         Token::TokenType opers[] = { Token::OP_EQ,
                                      Token::OP_NEQ,
                                      Token::OP_SM,
@@ -71,11 +72,11 @@ class TCDetectStringParser
             }
 
             if ( ret ) {
-                tk = lexer.get_next_token();
                 if ( ( tk.type == Token::EMPTY ) ||
                      ( tk.type != opers[precidence] ) ) {
                     break;
                 }
+                tk = lexer.get_next_token();
             }
         } while ( ret );
 
@@ -91,7 +92,6 @@ class TCDetectStringParser
     {
         bool ret;
 
-        Token tk = lexer.get_next_token();
         switch ( tk.type )
         {
         case Token::FUNC_EXT:
@@ -126,10 +126,13 @@ class TCDetectStringParser
             ret = false;
         }
 
+        tk = lexer.get_next_token();
+        
         return ret;
     }
 
     TCDetectStringLexer lexer;
+    Token               tk;
 };
 
 
@@ -143,6 +146,16 @@ BOOST_AUTO_TEST_CASE( parser_test1 )
     BOOST_CHECK_EQUAL( parser.parse( "MULTIMEDIA" ), true );
     BOOST_CHECK_EQUAL( parser.parse( "FIND( \"Hello\")" ), true );
     BOOST_CHECK_EQUAL( parser.parse( "FINDI(\"Hello\" )" ), true );
+    BOOST_CHECK_EQUAL( parser.parse( "0" ), true );
+    BOOST_CHECK_EQUAL( parser.parse( "\"My string\"" ), true );
+    BOOST_CHECK_EQUAL( parser.parse( "[0]" ), true );
+
+    BOOST_CHECK_EQUAL( parser.parse( "ext" ), true );
+    BOOST_CHECK_EQUAL( parser.parse( "size" ), true );
+    BOOST_CHECK_EQUAL( parser.parse( "FOrce" ), true );
+    BOOST_CHECK_EQUAL( parser.parse( "Multimedia" ), true );
+    BOOST_CHECK_EQUAL( parser.parse( "finD( \"Hello\")" ), true );
+    BOOST_CHECK_EQUAL( parser.parse( "FindI(\"Hello\" )" ), true );
     BOOST_CHECK_EQUAL( parser.parse( "0" ), true );
     BOOST_CHECK_EQUAL( parser.parse( "\"My string\"" ), true );
     BOOST_CHECK_EQUAL( parser.parse( "[0]" ), true );
@@ -167,6 +180,12 @@ BOOST_AUTO_TEST_CASE( parser_test2 )
     BOOST_CHECK_EQUAL( parser.parse( "EXT=\"CPP\" | EXT=\"EXE\" | EXT=\"BAT\"" ), true );
     BOOST_CHECK_EQUAL( parser.parse( "SIZE > 100" ), true );
     BOOST_CHECK_EQUAL( parser.parse( "SIZE > 100 | FORCE" ), true );
+    BOOST_CHECK_EQUAL( parser.parse( "[1]=\"a\" & [2] | [3]<5 & EXT!=\"b\"" ), true );
+    BOOST_CHECK_EQUAL( parser.parse( "ext=\"CPP\"" ), true );
+    BOOST_CHECK_EQUAL( parser.parse( "ext=\"CPP\" | ext=\"EXE\" | EXT=\"BAT\"" ), true );
+    BOOST_CHECK_EQUAL( parser.parse( "size > 100" ), true );
+    BOOST_CHECK_EQUAL( parser.parse( "size > 100 | FORCE" ), true );
+    BOOST_CHECK_EQUAL( parser.parse( "[1]=\"a\" & [2] | [3]<5 & ext!=\"b\"" ), true );
 }
 
 
