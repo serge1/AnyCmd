@@ -81,6 +81,8 @@
     <ClCompile Include="TCParserTest.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="TCDetectStringAST.hpp" />
+    <ClInclude Include="TCDetectStringLexer.hpp" />
     <ClInclude Include="TCDetectStringParser.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

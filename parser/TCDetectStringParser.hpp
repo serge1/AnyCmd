@@ -1,240 +1,139 @@
 #ifndef TCDetectStringParser_H
 #define TCDetectStringParser_H
 
-#include <iostream>
-#include <string>
-#include <locale>
-
-//---------------------------------------------------------------------------
-static void
-searchAndReplace( std::string& value, std::string const& search,
-                  std::string const& replace ) 
-{ 
-    std::string::size_type  next; 
-
-    for ( next = value.find( search );      // Try and find the first match 
-        next != std::string::npos;          // next is npos if nothing was found 
-        next = value.find( search, next )   // search for the next match starting after 
-        // the last match that was found. 
-        ) { 
-            // Inside the loop. So we found a match. 
-            if ( next == 0 || value[next - 1] != '\r' ) {
-                value.replace( next, search.length(), replace );  // Do the replacement. 
-            }
-            // Move to just after the replace. This is the point were we start 
-            // the next search from. 
-            next += replace.length();
-    }
-}
+#include "TCDetectStringLexer.hpp"
+#include "TCDetectStringAST.hpp"
 
 
 //------------------------------------------------------------------------------
-class Token {
-  public:
-    enum TokenType { EMPTY,
-                        NUM, STRING, BOOLEAN,
-                        FUNC_EXT, FUNC_SIZE, FUNC_FORCE, FUNC_MULTIMEDIA,
-                        FUNC_FIND, FUNC_FINDI,
-                        OPEN_BR, CLOSE_BR, OPEN_BR_SQ, CLOSE_BR_SQ,
-                        OP_NOT, OP_EQ, OP_NEQ, OP_AND, OP_OR, OP_LG, OP_SM };
-
-    Token() : type( Token::EMPTY ), value( "" ) {};
-
-  public:
-    TokenType   type;
-    std::string value;
-};
+#define GET_AND_EXPECT( token, value2 ) \
+    token = lexer.get_next_token();     \
+    if ( token.type != value2 ) return false;
 
 
 //------------------------------------------------------------------------------
-class TCDetectStringLexer
+//          expr0 -> expr1 [OP_EQ  expr1]*
+//          expr1 -> expr2 [OP_NEQ expr2]*
+//          expr2 -> expr3 [OP_SM  expr3]*
+//          expr3 -> expr4 [OP_LG  expr4]*
+//          expr4 -> expr5 [OP_AND expr5]*
+//          expr5 -> term  [OP_OR  term ]*
+//
+//          term -> FUNC(EXT, SIZE, FORCE, MULTIMEDIA)
+//               -> FUNC(FIND, FINDI) OPEN_BR STRING CLOSE_BR
+//               -> NUM
+//               -> STRING
+//               -> OPEN_BR_SQ NUM CLOSE_BR_SQ
+//               -> OPEN_BR expr CLOSE_BR
+//               -> OP_NOT OPEN_BR expr CLOSE_BR
+//------------------------------------------------------------------------------
+class TCDetectStringParser
 {
   public:
 //------------------------------------------------------------------------------
-    void set_text( std::string source )
+    TCDetectStringParser()
     {
-        src                    = source;
-        current_parse_position = 0;
     }
 
 //------------------------------------------------------------------------------
-    Token get_next_token()
+    bool parse( std::string str )
     {
-        Token ret;
+        bool ret = false;
 
-        if ( current_parse_position >= src.length() ) {
-            ret.type = Token::EMPTY;
-            return ret;
-        }
+        lexer.set_text( str );
 
-        skip_blanks();
+        tk = lexer.get_next_token();
 
-        struct word_to_token
-        {
-            std::string      word;
-            Token::TokenType type;
-        };
-        word_to_token words[] = {
-            { "EXT" ,       Token::FUNC_EXT        },
-            { "SIZE",       Token::FUNC_SIZE       },
-            { "FORCE",      Token::FUNC_FORCE      },
-            { "MULTIMEDIA", Token::FUNC_MULTIMEDIA },
-            { "FIND",       Token::FUNC_FIND       },
-            { "FINDI",      Token::FUNC_FINDI      },
-        };
-
-        std::string word;
-        if ( get_next_word( word ) ) {
-            for ( int i = 0; i < sizeof( words ) / sizeof( words[0] ); ++i ) {
-                std::transform( word.begin(), word.end(), word.begin(), ::toupper );
-                if ( words[i].word == word ) {
-                    ret.type                = words[i].type;
-                    current_parse_position += word.length();
-                    return ret;
-                }
-            }
-        }
-
-        if ( get_next_num( word ) ) {
-            ret.type                = Token::NUM;
-            ret.value               = word;
-            current_parse_position += word.length();
-            return ret;
-        }
-
-        if ( get_next_str( word ) ) {
-            ret.type                = Token::STRING;
-            ret.value               = word;
-            return ret;
-        }
-
-        if ( current_parse_position + 1 < src.length() ) {
-            if ( src.substr( current_parse_position, 2 ) == "!=" ) {
-                ret.type                = Token::OP_NEQ;
-                current_parse_position += 2;
-                return ret;
-            }
-        }
-
-        struct sym_to_token
-        {
-            char             sym;
-            Token::TokenType type;
-        };
-        sym_to_token symbols[] = {
-            { '!', Token::OP_NOT      },
-            { '&', Token::OP_AND      },
-            { '|', Token::OP_OR       },
-            { '=', Token::OP_EQ       },
-            { '<', Token::OP_SM       },
-            { '>', Token::OP_LG       },
-            { '(', Token::OPEN_BR     },
-            { ')', Token::CLOSE_BR    },
-            { '[', Token::OPEN_BR_SQ  },
-            { ']', Token::CLOSE_BR_SQ },
-        };
-
-        for ( int i = 0; i < sizeof( symbols ) / sizeof( symbols[0] ); ++i ) {
-            if ( src[current_parse_position] == symbols[i].sym ) {
-                ret.type = symbols[i].type;
-                ++current_parse_position;
-                return ret;
-            }
-        }
+        ret = parse_expr( 0 );
 
         return ret;
     }
 
   private:
 //------------------------------------------------------------------------------
-    void skip_blanks()
-    {
-        std::locale  loc;
-        unsigned int size = src.length();
-        while ( ( current_parse_position < size ) &&
-                std::isspace( src[current_parse_position], loc ) ) {
-            ++current_parse_position;
-        }
-    }
-
+    const static int max_precidence = 5;
+      
 //------------------------------------------------------------------------------
-    bool get_next_word( std::string& word )
+    bool parse_expr( int precidence )
     {
-        std::locale  loc;
-        unsigned int size = src.length();
-        unsigned int i    = current_parse_position;
-        while ( ( i < size ) &&
-                std::isalpha( src[i], loc ) ) {
-            ++i;
-        }
+        bool             ret     = false;
+        Token::TokenType opers[] = { Token::OP_EQ,
+                                     Token::OP_NEQ,
+                                     Token::OP_SM,
+                                     Token::OP_LG,
+                                     Token::OP_AND,
+                                     Token::OP_OR };
 
-        if ( ( i < size ) && std::isdigit( src[i], loc ) ) {
-            return false; 
-        }
-
-        word.clear();
-        if ( i != current_parse_position ) {
-            word = src.substr( current_parse_position, i - current_parse_position );
-        }
-
-        return !word.empty();
-    }
-
-//------------------------------------------------------------------------------
-    bool get_next_num( std::string& word )
-    {
-        std::locale  loc;
-        unsigned int size = src.length();
-        unsigned int i    = current_parse_position;
-        while ( ( i < size ) &&
-                std::isdigit( src[i], loc ) ) {
-            ++i;
-        }
-
-        if ( ( i < size ) && std::isalpha( src[i], loc ) ) {
-            return false; 
-        }
-
-        word.clear();
-        if ( i != current_parse_position ) {
-            word = src.substr( current_parse_position, i - current_parse_position );
-        }
-
-        return !word.empty();
-    }
-
-//------------------------------------------------------------------------------
-    bool get_next_str( std::string& word )
-    {
-        if ( src[current_parse_position] != '"' ) {
-            return false;
-        }
-
-        unsigned int size = src.length();
-        unsigned int i    = current_parse_position + 1;
-
-        while ( i < size ) {
-            if ( src[i] == '"' && src[i-1] != '\\') {
-                break;
+        do {
+            if ( precidence != max_precidence ) {
+                ret = parse_expr( precidence + 1 );
             }
-            ++i;
+            else {
+                ret = parse_term();
+            }
+
+            if ( ret ) {
+                if ( ( tk.type == Token::EMPTY ) ||
+                     ( tk.type != opers[precidence] ) ) {
+                    break;
+                }
+                tk = lexer.get_next_token();
+            }
+        } while ( ret );
+
+        if ( ret && (precidence == 0) && ( tk.type != Token::EMPTY ) ) {
+            ret = false;
         }
 
-        word.clear();
-        if ( i < size ) {
-            word = src.substr( current_parse_position + 1,
-                               i - current_parse_position - 1 );
-            current_parse_position += word.length() + 2;
-            searchAndReplace( word, "\\\"", "\"" );
-            return true;
-        }
-
-        return false;
+        return ret;
     }
 
-  private:
-    std::string  src;
-    unsigned int current_parse_position;
+//------------------------------------------------------------------------------
+    bool parse_term()
+    {
+        bool ret;
+
+        switch ( tk.type )
+        {
+        case Token::FUNC_EXT:
+        case Token::FUNC_SIZE:
+        case Token::FUNC_FORCE:
+        case Token::FUNC_MULTIMEDIA:
+            ret = true;
+            break;
+        case Token::FUNC_FIND:
+        case Token::FUNC_FINDI:
+            GET_AND_EXPECT( tk, Token::OPEN_BR );
+            GET_AND_EXPECT( tk, Token::STRING );
+            {
+                ret = true;
+            }
+            GET_AND_EXPECT( tk, Token::CLOSE_BR );
+            break;
+        case Token::NUM:
+            ret = true;
+            break;
+        case Token::STRING:
+            ret = true;
+            break;
+        case Token::OPEN_BR_SQ:
+            GET_AND_EXPECT( tk, Token::NUM );
+            {
+                ret = true;
+            }
+            GET_AND_EXPECT( tk, Token::CLOSE_BR_SQ );
+            break;
+        default:
+            ret = false;
+        }
+
+        tk = lexer.get_next_token();
+        
+        return ret;
+    }
+
+    TCDetectStringLexer lexer;
+    Token               tk;
 };
 
 #endif // TCDetectStringParser_H

@@ -18,6 +18,12 @@
     <ClInclude Include="TCDetectStringParser.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="TCDetectStringLexer.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="TCDetectStringAST.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="TCParserTest.cpp">
