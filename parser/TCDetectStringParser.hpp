@@ -44,9 +44,15 @@ class TCDetectStringParser
 
         tk = lexer.get_next_token();
 
-        ret = parse_expr( 0 );
+        ret = parse_expr( 0, tree );
 
         return ret;
+    }
+
+//------------------------------------------------------------------------------
+    std::string to_string()
+    {
+        return tree->to_string();
     }
 
   private:
@@ -54,7 +60,7 @@ class TCDetectStringParser
     const static int max_precidence = 5;
       
 //------------------------------------------------------------------------------
-    bool parse_expr( int precidence )
+    bool parse_expr( int precidence, std::unique_ptr<ASTNode>& node )
     {
         bool             ret     = false;
         Token::TokenType opers[] = { Token::OP_EQ,
@@ -63,13 +69,14 @@ class TCDetectStringParser
                                      Token::OP_LG,
                                      Token::OP_AND,
                                      Token::OP_OR };
-
+        
+        std::unique_ptr<ASTNode> opnode;
         do {
             if ( precidence != max_precidence ) {
-                ret = parse_expr( precidence + 1 );
+                ret = parse_expr( precidence + 1, opnode );
             }
             else {
-                ret = parse_term();
+                ret = parse_term( opnode );
             }
 
             if ( ret ) {
@@ -85,13 +92,16 @@ class TCDetectStringParser
             ret = false;
         }
 
+        node = std::move( opnode );
         return ret;
     }
 
 //------------------------------------------------------------------------------
-    bool parse_term()
+    bool parse_term( std::unique_ptr<ASTNode>& node )
     {
         bool ret;
+
+        std::string func;
 
         switch ( tk.type )
         {
@@ -99,27 +109,33 @@ class TCDetectStringParser
         case Token::FUNC_SIZE:
         case Token::FUNC_FORCE:
         case Token::FUNC_MULTIMEDIA:
+            node = std::unique_ptr<ASTNode>( new ASTFuncNode( tk.value ) );
             ret = true;
             break;
         case Token::FUNC_FIND:
         case Token::FUNC_FINDI:
+            func = tk.value;
             GET_AND_EXPECT( tk, Token::OPEN_BR );
             GET_AND_EXPECT( tk, Token::STRING );
             {
-                ret = true;
+                node = std::unique_ptr<ASTNode>( new ASTFunc1Node( func, tk.value ) );
+                ret  = true;
             }
             GET_AND_EXPECT( tk, Token::CLOSE_BR );
             break;
         case Token::NUM:
-            ret = true;
+            node = std::unique_ptr<ASTNode>( new ASTNumericNode( tk.value ) );
+            ret  = true;
             break;
         case Token::STRING:
-            ret = true;
+            node = std::unique_ptr<ASTNode>( new ASTStringNode( tk.value ) );
+            ret  = true;
             break;
         case Token::OPEN_BR_SQ:
             GET_AND_EXPECT( tk, Token::NUM );
             {
-                ret = true;
+                node = std::unique_ptr<ASTNode>( new ASTIndexNode( tk.value ) );
+                ret  = true;
             }
             GET_AND_EXPECT( tk, Token::CLOSE_BR_SQ );
             break;
@@ -132,8 +148,9 @@ class TCDetectStringParser
         return ret;
     }
 
-    TCDetectStringLexer lexer;
-    Token               tk;
+    TCDetectStringLexer      lexer;
+    Token                    tk;
+    std::unique_ptr<ASTNode> tree;
 };
 
 #endif // TCDetectStringParser_H
