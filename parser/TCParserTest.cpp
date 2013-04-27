@@ -248,4 +248,28 @@ BOOST_AUTO_TEST_CASE( parser_test3 )
 
     BOOST_CHECK_EQUAL( parser.parse( "EXT=\"CPP\"" ), true );
     BOOST_CHECK_EQUAL( parser.to_string(), "(EXT=\"CPP\")" );
+
+    BOOST_CHECK_EQUAL( parser.parse( "EXT=\"CPP\" | EXT=\"EXE\" | EXT=\"BAT\"" ), true );
+    BOOST_CHECK_EQUAL( parser.to_string(), "((EXT=\"CPP\")|((EXT=\"EXE\")|(EXT=\"BAT\")))" );
+
+    BOOST_CHECK_EQUAL( parser.parse( "SIZE > 100" ), true );
+    BOOST_CHECK_EQUAL( parser.to_string(), "(SIZE>100)" );
+
+    BOOST_CHECK_EQUAL( parser.parse( "SIZE > 100 | FORCE" ), true );
+    BOOST_CHECK_EQUAL( parser.to_string(), "((SIZE>100)|FORCE)" );
+
+    BOOST_CHECK_EQUAL( parser.parse( "[1]=\"a\" & [2] | [3]<5 & EXT!=\"b\"" ), true );
+    BOOST_CHECK_EQUAL( parser.to_string(), "((([1]=\"a\")&[2])|(([3]<5)&(EXT!=\"b\")))" );
+
+    BOOST_CHECK_EQUAL( parser.parse( "[1]=5&FORCE" ), true );
+    BOOST_CHECK_EQUAL( parser.to_string(), "(([1]=5)&FORCE)" );
+
+    BOOST_CHECK_EQUAL( parser.parse( "FORCE&[1]=5" ), true );
+    BOOST_CHECK_EQUAL( parser.to_string(), "(FORCE&([1]=5))" );
+
+    BOOST_CHECK_EQUAL( parser.parse( "[1]=(5&FORCE)" ), true );
+    BOOST_CHECK_EQUAL( parser.to_string(), "([1]=(5&FORCE))" );
+
+    BOOST_CHECK_EQUAL( parser.parse( "(FORCE&[1])=5" ), true );
+    BOOST_CHECK_EQUAL( parser.to_string(), "((FORCE&[1])=5)" );
 }

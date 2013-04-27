@@ -7,7 +7,8 @@
 class ASTNode
 {
   public:
-      virtual bool eval() { return true; };
+      virtual             ~ASTNode()  {}
+      virtual bool        eval()      { return true; };
       virtual std::string to_string() = 0;
 };
 
@@ -93,9 +94,9 @@ class ASTFuncNode : public ASTNode
 {
   public:
 //------------------------------------------------------------------------------
-    ASTFuncNode( std::string val )
+    ASTFuncNode( Token::TokenType val )
     {
-        str = val;
+        func = val;
     }
 
 //------------------------------------------------------------------------------
@@ -104,11 +105,30 @@ class ASTFuncNode : public ASTNode
 //------------------------------------------------------------------------------
     virtual std::string to_string()
     {
-        return str;
+        std::string funcstr;
+        switch ( func ) {
+        case Token::FUNC_EXT:
+            funcstr = "EXT";
+            break;
+        case Token::FUNC_SIZE:
+            funcstr = "SIZE";
+            break;
+        case Token::FUNC_FORCE:
+            funcstr = "FORCE";
+            break;
+        case Token::FUNC_MULTIMEDIA:
+            funcstr = "MULTIMEDIA";
+            break;
+        default:
+            funcstr = "UNKNOWN";
+            break;
+        }
+
+        return funcstr;
     }
 
   private:
-    std::string str;
+      Token::TokenType func;
 };
 
 
@@ -145,7 +165,7 @@ class ASTOpNode : public ASTNode
 {
   public:
 //------------------------------------------------------------------------------
-    ASTOpNode( std::string operation,
+    ASTOpNode( Token::TokenType         operation,
                std::unique_ptr<ASTNode> val1,
                std::unique_ptr<ASTNode> val2 )
     {
@@ -160,13 +180,36 @@ class ASTOpNode : public ASTNode
 //------------------------------------------------------------------------------
     virtual std::string to_string()
     {
-        std::string ret;
-        ret = "(" + left->to_string() + op + right->to_string() + ")";
-        return ret;
+        std::string opstr;
+        switch ( op ) {
+        case Token::OP_OR:
+            opstr = "|";
+            break;
+        case Token::OP_AND:
+            opstr = "&";
+            break;
+        case Token::OP_LG:
+            opstr = ">";
+            break;
+        case Token::OP_SM:
+            opstr = "<";
+            break;
+        case Token::OP_NEQ:
+            opstr = "!=";
+            break;
+        case Token::OP_EQ:
+            opstr = "=";
+            break;
+        default:
+            opstr = "";
+            break;
+        }
+
+        return "(" + left->to_string() + opstr + right->to_string() + ")";
     }
 
-  private:
-    std::string              op;
+  public:
+    Token::TokenType         op;
     std::unique_ptr<ASTNode> left;
     std::unique_ptr<ASTNode> right;
 };

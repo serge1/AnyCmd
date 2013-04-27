@@ -44,7 +44,11 @@ class TCDetectStringParser
 
         tk = lexer.get_next_token();
 
-        ret = parse_expr( 0, tree );
+        ret = parse_expr( 0, &tree );
+
+        if ( ret && ( tk.type != Token::EMPTY ) ) {
+            ret = false;
+        }
 
         return ret;
     }
@@ -60,44 +64,48 @@ class TCDetectStringParser
     const static int max_precidence = 5;
       
 //------------------------------------------------------------------------------
-    bool parse_expr( int precidence, std::unique_ptr<ASTNode>& node )
+    bool parse_expr( int precidence, std::unique_ptr<ASTNode>* node )
     {
         bool             ret     = false;
-        Token::TokenType opers[] = { Token::OP_EQ,
-                                     Token::OP_NEQ,
-                                     Token::OP_SM,
-                                     Token::OP_LG,
+        Token::TokenType opers[] = { Token::OP_OR,
                                      Token::OP_AND,
-                                     Token::OP_OR };
+                                     Token::OP_LG,
+                                     Token::OP_SM,
+                                     Token::OP_NEQ,
+                                     Token::OP_EQ };
         
-        std::unique_ptr<ASTNode> opnode;
         do {
+            std::unique_ptr<ASTNode> opnode;
+
             if ( precidence != max_precidence ) {
-                ret = parse_expr( precidence + 1, opnode );
+                ret = parse_expr( precidence + 1, &opnode );
             }
             else {
-                ret = parse_term( opnode );
+                ret = parse_term( &opnode );
             }
 
             if ( ret ) {
                 if ( ( tk.type == Token::EMPTY ) ||
                      ( tk.type != opers[precidence] ) ) {
+                    *node = std::move( opnode );
                     break;
                 }
+
+                *node = std::move( std::unique_ptr<ASTNode>( 
+                                       new ASTOpNode( opers[precidence],
+                                                      std::move( opnode ),
+                                                      std::unique_ptr<ASTNode>() ) ) );
+                node = &((ASTOpNode*)node->get())->right;
+
                 tk = lexer.get_next_token();
             }
         } while ( ret );
 
-        if ( ret && (precidence == 0) && ( tk.type != Token::EMPTY ) ) {
-            ret = false;
-        }
-
-        node = std::move( opnode );
         return ret;
     }
 
 //------------------------------------------------------------------------------
-    bool parse_term( std::unique_ptr<ASTNode>& node )
+    bool parse_term( std::unique_ptr<ASTNode>* node )
     {
         bool ret;
 
@@ -109,8 +117,8 @@ class TCDetectStringParser
         case Token::FUNC_SIZE:
         case Token::FUNC_FORCE:
         case Token::FUNC_MULTIMEDIA:
-            node = std::unique_ptr<ASTNode>( new ASTFuncNode( tk.value ) );
-            ret = true;
+            *node = std::move( std::unique_ptr<ASTNode>( new ASTFuncNode( tk.type ) ) );
+            ret   = true;
             break;
         case Token::FUNC_FIND:
         case Token::FUNC_FINDI:
@@ -118,26 +126,37 @@ class TCDetectStringParser
             GET_AND_EXPECT( tk, Token::OPEN_BR );
             GET_AND_EXPECT( tk, Token::STRING );
             {
-                node = std::unique_ptr<ASTNode>( new ASTFunc1Node( func, tk.value ) );
-                ret  = true;
+                *node = std::move( std::unique_ptr<ASTNode>( new ASTFunc1Node( func, tk.value ) ) );
+                ret   = true;
             }
             GET_AND_EXPECT( tk, Token::CLOSE_BR );
             break;
         case Token::NUM:
-            node = std::unique_ptr<ASTNode>( new ASTNumericNode( tk.value ) );
-            ret  = true;
+            *node = std::move( std::unique_ptr<ASTNode>( new ASTNumericNode( tk.value ) ) );
+            ret   = true;
             break;
         case Token::STRING:
-            node = std::unique_ptr<ASTNode>( new ASTStringNode( tk.value ) );
-            ret  = true;
+            *node = std::move( std::unique_ptr<ASTNode>( new ASTStringNode( tk.value ) ) );
+            ret   = true;
             break;
         case Token::OPEN_BR_SQ:
             GET_AND_EXPECT( tk, Token::NUM );
             {
-                node = std::unique_ptr<ASTNode>( new ASTIndexNode( tk.value ) );
-                ret  = true;
+                *node = std::move( std::unique_ptr<ASTNode>( new ASTIndexNode( tk.value ) ) );
+                ret   = true;
             }
             GET_AND_EXPECT( tk, Token::CLOSE_BR_SQ );
+            break;
+        case Token::OPEN_BR:
+            tk  = lexer.get_next_token();
+            ret = parse_expr( 0, node );
+            if ( tk.type != Token::CLOSE_BR ) return false;
+            break;
+        case Token::OP_NOT:
+            GET_AND_EXPECT( tk, Token::OPEN_BR );
+            tk  = lexer.get_next_token();
+            ret = parse_expr( 0, node );
+            if ( tk.type != Token::CLOSE_BR ) return false;
             break;
         default:
             ret = false;
