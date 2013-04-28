@@ -155,8 +155,10 @@ BOOST_AUTO_TEST_CASE( lexer_test5 )
 {
     Token               tk;
     TCDetectStringLexer lexer;
-    lexer.set_text( "  EXT=\"CPP\"|SIZE= \"aaa bbb \" &FIND( \"my12 34\\\" FIND\")" );
+    lexer.set_text( "  !=  EXT=\"CPP\"|SIZE= \"aaa bbb \" &FIND( \"my12 34\\\" FIND\")" );
 
+    tk = lexer.get_next_token();
+    BOOST_CHECK_EQUAL( tk.type, Token::OP_NEQ );
     tk = lexer.get_next_token();
     BOOST_CHECK_EQUAL( tk.type, Token::FUNC_EXT );
     tk = lexer.get_next_token();
@@ -272,4 +274,7 @@ BOOST_AUTO_TEST_CASE( parser_test3 )
 
     BOOST_CHECK_EQUAL( parser.parse( "(FORCE&[1])=5" ), true );
     BOOST_CHECK_EQUAL( parser.to_string(), "((FORCE&[1])=5)" );
+
+    BOOST_CHECK_EQUAL( parser.parse( "(EXT!=5)" ), true );
+    BOOST_CHECK_EQUAL( parser.to_string(), "(EXT!=5)" );
 }

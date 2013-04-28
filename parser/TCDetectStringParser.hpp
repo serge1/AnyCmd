@@ -9,23 +9,24 @@
 #define GET_AND_EXPECT( token, value2 ) \
     token = lexer.get_next_token();     \
     if ( token.type != value2 ) return false;
+#define EXPECT( token, value2 ) \
+    if ( token.type != value2 ) return false;
 
 
 //------------------------------------------------------------------------------
-//          expr0 -> expr1 [OP_EQ  expr1]*
-//          expr1 -> expr2 [OP_NEQ expr2]*
-//          expr2 -> expr3 [OP_SM  expr3]*
-//          expr3 -> expr4 [OP_LG  expr4]*
-//          expr4 -> expr5 [OP_AND expr5]*
-//          expr5 -> term  [OP_OR  term ]*
-//
-//          term -> FUNC(EXT, SIZE, FORCE, MULTIMEDIA)
-//               -> FUNC(FIND, FINDI) OPEN_BR STRING CLOSE_BR
-//               -> NUM
-//               -> STRING
-//               -> OPEN_BR_SQ NUM CLOSE_BR_SQ
-//               -> OPEN_BR expr CLOSE_BR
-//               -> OP_NOT OPEN_BR expr CLOSE_BR
+//          expr0 -> expr1 [OP_OR  expr1]*
+//          expr1 -> expr2 [OP_AND expr2]*
+//          expr2 -> expr3 [OP_LG  expr3]*
+//          expr3 -> expr4 [OP_SM  expr4]*
+//          expr4 -> expr5 [OP_NEQ expr5]*
+//          expr5 -> term  [OP_EQ  term ]*
+//          term  -> FUNC(EXT, SIZE, FORCE, MULTIMEDIA)
+//                -> FUNC(FIND, FINDI) OPEN_BR STRING CLOSE_BR
+//                -> NUM
+//                -> STRING
+//                -> OPEN_BR_SQ NUM CLOSE_BR_SQ
+//                -> OPEN_BR expr CLOSE_BR
+//                -> OP_NOT OPEN_BR expr CLOSE_BR
 //------------------------------------------------------------------------------
 class TCDetectStringParser
 {
@@ -156,7 +157,7 @@ class TCDetectStringParser
             GET_AND_EXPECT( tk, Token::OPEN_BR );
             tk  = lexer.get_next_token();
             ret = parse_expr( 0, node );
-            if ( tk.type != Token::CLOSE_BR ) return false;
+            EXPECT( tk, Token::CLOSE_BR );
             break;
         default:
             ret = false;

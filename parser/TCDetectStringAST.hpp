@@ -7,8 +7,19 @@
 class ASTNode
 {
   public:
+    enum ResultType { BOOLEAN, NUMERIC, STRING };
+    struct Result
+    {
+        ResultType type;
+
+        unsigned int num_result;  // Valid if type == NUMERIC
+        std::string  str_result;  //       if type == STRING
+        bool         bool_result; //       if type == BOOLEAN
+    };
+
+  public:
       virtual             ~ASTNode()  {}
-      virtual bool        eval()      { return true; };
+      virtual Result      eval()      = 0;
       virtual std::string to_string() = 0;
 };
 
@@ -24,7 +35,13 @@ class ASTNumericNode : public ASTNode
     }
 
 //------------------------------------------------------------------------------
-    virtual bool eval() { return true; };
+    virtual Result eval()
+    {
+        Result ret;
+        ret.type       = NUMERIC;
+        ret.num_result = value;
+        return ret;
+    };
 
 //------------------------------------------------------------------------------
     virtual std::string to_string()
@@ -50,7 +67,13 @@ class ASTStringNode : public ASTNode
     }
 
 //------------------------------------------------------------------------------
-    virtual bool eval() { return true; };
+    virtual Result eval()
+    {
+        Result ret;
+        ret.type       = STRING;
+        ret.str_result = str;
+        return ret;
+    };
 
 //------------------------------------------------------------------------------
     virtual std::string to_string()
@@ -74,7 +97,13 @@ class ASTIndexNode : public ASTNode
     }
 
 //------------------------------------------------------------------------------
-    virtual bool eval() { return true; };
+    virtual Result eval()
+    {
+        Result ret;
+        ret.type       = NUMERIC;
+        ret.num_result = 0;
+        return ret;
+    };
 
 //------------------------------------------------------------------------------
     virtual std::string to_string()
@@ -100,7 +129,13 @@ class ASTFuncNode : public ASTNode
     }
 
 //------------------------------------------------------------------------------
-    virtual bool eval() { return true; };
+    virtual Result eval()
+    {
+        Result ret;
+        ret.type       = NUMERIC;
+        ret.num_result = 0;
+        return ret;
+    };
 
 //------------------------------------------------------------------------------
     virtual std::string to_string()
@@ -144,7 +179,13 @@ class ASTFunc1Node : public ASTNode
     }
 
 //------------------------------------------------------------------------------
-    virtual bool eval() { return true; };
+    virtual Result eval()
+    {
+        Result ret;
+        ret.type        = BOOLEAN;
+        ret.bool_result = true;
+        return ret;
+    };
 
 //------------------------------------------------------------------------------
     virtual std::string to_string()
@@ -175,7 +216,13 @@ class ASTOpNode : public ASTNode
     }
 
 //------------------------------------------------------------------------------
-    virtual bool eval() { return true; };
+    virtual Result eval()
+    {
+        Result ret;
+        ret.type       = NUMERIC;
+        ret.num_result = 0;
+        return ret;
+    };
 
 //------------------------------------------------------------------------------
     virtual std::string to_string()
