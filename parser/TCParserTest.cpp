@@ -278,3 +278,66 @@ BOOST_AUTO_TEST_CASE( parser_test3 )
     BOOST_CHECK_EQUAL( parser.parse( "(EXT!=5)" ), true );
     BOOST_CHECK_EQUAL( parser.to_string(), "(EXT!=5)" );
 }
+
+
+BOOST_AUTO_TEST_CASE( result_test1 )
+{
+    NumericResult nr( 24 );
+    BOOST_CHECK_EQUAL( nr.to_bool(), true );
+    BOOST_CHECK_EQUAL( nr.to_num(), 24 );
+    BOOST_CHECK_EQUAL( nr.to_str(), "24" );
+
+    NumericResult nr1( 0 );
+    BOOST_CHECK_EQUAL( nr1.to_bool(), false );
+    BOOST_CHECK_EQUAL( nr1.to_num(), 0 );
+    BOOST_CHECK_EQUAL( nr1.to_str(), "0" );
+
+    BooleanResult nr2( false );
+    BOOST_CHECK_EQUAL( nr2.to_bool(), false );
+    BOOST_CHECK_EQUAL( nr2.to_num(), 0 );
+    BOOST_CHECK_EQUAL( nr2.to_str(), "0" );
+
+    BooleanResult nr3( true );
+    BOOST_CHECK_EQUAL( nr3.to_bool(), true );
+    BOOST_CHECK_EQUAL( nr3.to_num(), 1 );
+    BOOST_CHECK_EQUAL( nr3.to_str(), "1" );
+
+    StringResult nr4( "Abc" );
+    BOOST_CHECK_EQUAL( nr4.to_bool(), false );
+    BOOST_CHECK_EQUAL( nr4.to_num(), 0 );
+    BOOST_CHECK_EQUAL( nr4.to_str(), "Abc" );
+
+    StringResult nr5( "10Abc" );
+    BOOST_CHECK_EQUAL( nr5.to_bool(), true );
+    BOOST_CHECK_EQUAL( nr5.to_num(), 10 );
+    BOOST_CHECK_EQUAL( nr5.to_str(), "10Abc" );
+}
+
+
+BOOST_AUTO_TEST_CASE( result_test2 )
+{
+    std::unique_ptr<Result> res1( new StringResult( "10" ) );
+    std::unique_ptr<Result> res2( new NumericResult( 12 ) );
+    std::unique_ptr<Result> res3( new BooleanResult( true ) );
+
+    BOOST_CHECK_EQUAL( res1->get_type(), Result::STRING );
+    BOOST_CHECK_EQUAL( res2->get_type(), Result::NUMERIC );
+    BOOST_CHECK_EQUAL( res3->get_type(), Result::BOOLEAN );
+
+    BOOST_CHECK_EQUAL( Result::get_common( res1->get_type(), res2->get_type() ), Result::NUMERIC );
+    BOOST_CHECK_EQUAL( Result::get_common( res1->get_type(), res1->get_type() ), Result::STRING );
+    BOOST_CHECK_EQUAL( Result::get_common( res2->get_type(), res2->get_type() ), Result::NUMERIC );
+    BOOST_CHECK_EQUAL( Result::get_common( res2->get_type(), res1->get_type() ), Result::NUMERIC );
+    BOOST_CHECK_EQUAL( Result::get_common( res2->get_type(), res3->get_type() ), Result::BOOLEAN );
+    BOOST_CHECK_EQUAL( Result::get_common( res3->get_type(), res1->get_type() ), Result::BOOLEAN );
+
+    res1 = std::move( Result::convert_to_type( Result::STRING,  res1 ) );
+    BOOST_CHECK_EQUAL( res1->get_type(), Result::STRING );
+    res1 = std::move( Result::convert_to_type( Result::NUMERIC,  res1 ) );
+    BOOST_CHECK_EQUAL( res1->get_type(), Result::NUMERIC );
+    res1 = std::move( Result::convert_to_type( Result::BOOLEAN,  res1 ) );
+    BOOST_CHECK_EQUAL( res1->get_type(), Result::BOOLEAN );
+    BOOST_CHECK_EQUAL( res2->to_bool(), true );
+    BOOST_CHECK_EQUAL( res2->to_num(), 12 );
+    BOOST_CHECK_EQUAL( res2->to_str(), "12" );
+}

@@ -3,24 +3,154 @@
 #include "TCDetectStringLexer.hpp"
 
 
+class Result;
+typedef std::unique_ptr<Result> ResultPtr;
+class Result
+{
+  public:
+    enum ResultType { STRING, NUMERIC, BOOLEAN };
+
+  public:
+      ~Result() {};
+
+    virtual bool         to_bool() const = 0;
+    virtual unsigned int to_num()  const = 0;
+    virtual std::string  to_str()  const = 0;
+
+    ResultType get_type() { return type; };
+
+    static ResultType get_common( Result::ResultType rt1,
+                                  Result::ResultType rt2 );
+    static ResultPtr  convert_to_type( Result::ResultType type,
+                                       ResultPtr&         result );
+
+  protected:
+    ResultType type;
+};
+
+class NumericResult : public Result
+{
+  public:
+    NumericResult( unsigned int value_ ) : value( value_ ) {
+        type = ResultType::NUMERIC;
+    };
+
+    virtual bool to_bool() const
+    {
+        return ( value != 0 );
+    }
+
+    virtual unsigned int to_num() const
+    {
+        return value;
+    }
+
+    virtual std::string to_str() const
+    {
+        std::ostringstream oss;
+        oss << value;
+        return oss.str();
+    }
+
+  private:
+    unsigned int value;
+};
+
+class StringResult : public Result
+{
+  public:
+    StringResult( std::string value_ ) : value( value_ ) {
+        type = ResultType::STRING;
+    };
+
+    virtual bool to_bool() const
+    {
+        return ( to_num() != 0 );
+    }
+
+    virtual unsigned int to_num() const
+    {
+        return std::strtoul( value.c_str(), 0 , 0 );
+    }
+
+    virtual std::string to_str() const
+    {
+        return value;
+    }
+
+  private:
+    std::string value;
+};
+
+struct BooleanResult : public Result
+{
+  public:
+    BooleanResult( bool value_ ) : value( value_ ) {
+        type = ResultType::BOOLEAN;
+    };
+
+    virtual bool to_bool() const
+    {
+        return value;
+    }
+
+    virtual unsigned int to_num() const
+    {
+        return ( value ? 1 : 0 );
+    }
+
+    virtual std::string to_str() const
+    {
+        return ( value ? "1" : "0" );
+    }
+
+  private:
+    bool value;
+};
+
+
+//------------------------------------------------------------------------------
+Result::ResultType
+Result::get_common( Result::ResultType rt1, Result::ResultType rt2 )
+{
+    return std::max( rt1, rt2 ); 
+}
+
+
+//------------------------------------------------------------------------------
+ResultPtr
+Result::convert_to_type( Result::ResultType type, ResultPtr& result )
+{
+    if ( type == result->get_type() ) {
+        return std::move( result );
+    }
+
+    ResultPtr res;
+    switch ( type ) {
+    case Result::STRING:
+        res = std::move( ResultPtr( new StringResult( result->to_str() ) ) );
+        break;
+    case Result::NUMERIC:
+        res = std::move( ResultPtr( new NumericResult( result->to_num() ) ) );
+        break;
+    case Result::BOOLEAN:
+        res = std::move( ResultPtr( new BooleanResult( result->to_bool() ) ) );
+        break;
+    default:
+        break;
+    }
+
+    return res;
+}
+
+
 //------------------------------------------------------------------------------
 class ASTNode
 {
   public:
-    enum ResultType { BOOLEAN, NUMERIC, STRING };
-    struct Result
-    {
-        ResultType type;
-
-        unsigned int num_result;  // Valid if type == NUMERIC
-        std::string  str_result;  //       if type == STRING
-        bool         bool_result; //       if type == BOOLEAN
-    };
-
-  public:
-      virtual             ~ASTNode()  {}
-      virtual Result      eval()      = 0;
-      virtual std::string to_string() = 0;
+      virtual                         ~ASTNode()  {}
+      virtual ResultPtr eval()      = 0;
+      virtual std::string             to_string() = 0;
 };
 
 
@@ -35,12 +165,10 @@ class ASTNumericNode : public ASTNode
     }
 
 //------------------------------------------------------------------------------
-    virtual Result eval()
+    virtual ResultPtr eval()
     {
-        Result ret;
-        ret.type       = NUMERIC;
-        ret.num_result = value;
-        return ret;
+        ResultPtr res = std::move( ResultPtr( new NumericResult( value ) ) );
+        return res;
     };
 
 //------------------------------------------------------------------------------
@@ -67,12 +195,10 @@ class ASTStringNode : public ASTNode
     }
 
 //------------------------------------------------------------------------------
-    virtual Result eval()
+    virtual ResultPtr eval()
     {
-        Result ret;
-        ret.type       = STRING;
-        ret.str_result = str;
-        return ret;
+        ResultPtr res = std::move( ResultPtr( new StringResult( str ) ) );
+        return res;
     };
 
 //------------------------------------------------------------------------------
@@ -97,12 +223,10 @@ class ASTIndexNode : public ASTNode
     }
 
 //------------------------------------------------------------------------------
-    virtual Result eval()
+    virtual ResultPtr eval()
     {
-        Result ret;
-        ret.type       = NUMERIC;
-        ret.num_result = 0;
-        return ret;
+        ResultPtr res = std::move( ResultPtr( new NumericResult( value ) ) );
+        return res;
     };
 
 //------------------------------------------------------------------------------
@@ -129,12 +253,10 @@ class ASTFuncNode : public ASTNode
     }
 
 //------------------------------------------------------------------------------
-    virtual Result eval()
+    virtual ResultPtr eval()
     {
-        Result ret;
-        ret.type       = NUMERIC;
-        ret.num_result = 0;
-        return ret;
+        ResultPtr res = std::move( ResultPtr( new NumericResult( 0 ) ) );
+        return res;
     };
 
 //------------------------------------------------------------------------------
@@ -179,12 +301,10 @@ class ASTFunc1Node : public ASTNode
     }
 
 //------------------------------------------------------------------------------
-    virtual Result eval()
+    virtual ResultPtr eval()
     {
-        Result ret;
-        ret.type        = BOOLEAN;
-        ret.bool_result = true;
-        return ret;
+        ResultPtr res = std::move( ResultPtr( new BooleanResult( false ) ) );
+        return res;
     };
 
 //------------------------------------------------------------------------------
@@ -216,12 +336,10 @@ class ASTOpNode : public ASTNode
     }
 
 //------------------------------------------------------------------------------
-    virtual Result eval()
+    virtual ResultPtr eval()
     {
-        Result ret;
-        ret.type       = NUMERIC;
-        ret.num_result = 0;
-        return ret;
+        ResultPtr res = std::move( ResultPtr( new NumericResult( 0 ) ) );
+        return res;
     };
 
 //------------------------------------------------------------------------------
