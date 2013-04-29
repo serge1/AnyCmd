@@ -1,156 +1,58 @@
+#include <sys/types.h>
+#include <sys/stat.h>
 #include <sstream>
 #include <memory>
 #include "TCDetectStringLexer.hpp"
+#include "TCDetectStringResult.hpp"
 
 
-class Result;
-typedef std::unique_ptr<Result> ResultPtr;
-class Result
+class IFileContentProvider
 {
-  public:
-    enum ResultType { STRING, NUMERIC, BOOLEAN };
-
-  public:
-      ~Result() {};
-
-    virtual bool         to_bool() const = 0;
-    virtual unsigned int to_num()  const = 0;
-    virtual std::string  to_str()  const = 0;
-
-    ResultType get_type() { return type; };
-
-    static ResultType get_common( Result::ResultType rt1,
-                                  Result::ResultType rt2 );
-    static ResultPtr  convert_to_type( Result::ResultType type,
-                                       ResultPtr&         result );
-
-  protected:
-    ResultType type;
+  public:  
+    virtual ~IFileContentProvider()             {};
+    virtual std::string  get_file_name() const = 0;
+    virtual const char*  get_content()         = 0;
+    virtual unsigned int get_content_size()    = 0;
 };
 
-class NumericResult : public Result
+
+class TCDetectStringFileContent : public IFileContentProvider
 {
-  public:
-    NumericResult( unsigned int value_ ) : value( value_ ) {
-        type = ResultType::NUMERIC;
-    };
+  public:  
+    TCDetectStringFileContent( std::string file_name_ = "" ) : file_name( file_name_ ) {};
 
-    virtual bool to_bool() const
+    void set_file_name( std::string file_name_ )
     {
-        return ( value != 0 );
+        file_name = file_name_;
     }
 
-    virtual unsigned int to_num() const
+    virtual std::string  get_file_name() const
     {
-        return value;
+        return file_name;
     }
 
-    virtual std::string to_str() const
+    virtual const char*  get_content()
     {
-        std::ostringstream oss;
-        oss << value;
-        return oss.str();
+        return 0;
+    }
+
+    virtual unsigned int get_content_size()
+    {
+        return 0;
     }
 
   private:
-    unsigned int value;
+    std::string file_name;
 };
-
-class StringResult : public Result
-{
-  public:
-    StringResult( std::string value_ ) : value( value_ ) {
-        type = ResultType::STRING;
-    };
-
-    virtual bool to_bool() const
-    {
-        return ( to_num() != 0 );
-    }
-
-    virtual unsigned int to_num() const
-    {
-        return std::strtoul( value.c_str(), 0 , 0 );
-    }
-
-    virtual std::string to_str() const
-    {
-        return value;
-    }
-
-  private:
-    std::string value;
-};
-
-struct BooleanResult : public Result
-{
-  public:
-    BooleanResult( bool value_ ) : value( value_ ) {
-        type = ResultType::BOOLEAN;
-    };
-
-    virtual bool to_bool() const
-    {
-        return value;
-    }
-
-    virtual unsigned int to_num() const
-    {
-        return ( value ? 1 : 0 );
-    }
-
-    virtual std::string to_str() const
-    {
-        return ( value ? "1" : "0" );
-    }
-
-  private:
-    bool value;
-};
-
-
-//------------------------------------------------------------------------------
-Result::ResultType
-Result::get_common( Result::ResultType rt1, Result::ResultType rt2 )
-{
-    return std::max( rt1, rt2 ); 
-}
-
-
-//------------------------------------------------------------------------------
-ResultPtr
-Result::convert_to_type( Result::ResultType type, ResultPtr& result )
-{
-    if ( type == result->get_type() ) {
-        return std::move( result );
-    }
-
-    ResultPtr res;
-    switch ( type ) {
-    case Result::STRING:
-        res = std::move( ResultPtr( new StringResult( result->to_str() ) ) );
-        break;
-    case Result::NUMERIC:
-        res = std::move( ResultPtr( new NumericResult( result->to_num() ) ) );
-        break;
-    case Result::BOOLEAN:
-        res = std::move( ResultPtr( new BooleanResult( result->to_bool() ) ) );
-        break;
-    default:
-        break;
-    }
-
-    return res;
-}
 
 
 //------------------------------------------------------------------------------
 class ASTNode
 {
   public:
-      virtual                         ~ASTNode()  {}
-      virtual ResultPtr eval()      = 0;
-      virtual std::string             to_string() = 0;
+    virtual             ~ASTNode()  {}
+    virtual ResultPtr   eval()      = 0;
+    virtual std::string to_string() = 0;
 };
 
 
@@ -217,15 +119,21 @@ class ASTIndexNode : public ASTNode
 {
   public:
 //------------------------------------------------------------------------------
-    ASTIndexNode( std::string val )
+    ASTIndexNode( std::string val, IFileContentProvider* content_provider_ )
     {
+        content_provider = content_provider_;
         value = std::strtoul( val.c_str(), 0 , 0 );
     }
 
 //------------------------------------------------------------------------------
     virtual ResultPtr eval()
     {
-        ResultPtr res = std::move( ResultPtr( new NumericResult( value ) ) );
+        unsigned int res_value = 0;
+        if ( value < content_provider->get_content_size() ) {
+            const char* content = content_provider->get_content();
+            res_value = content[value];
+        }
+        ResultPtr res = std::move( ResultPtr( new NumericResult( res_value ) ) );
         return res;
     };
 
@@ -238,7 +146,8 @@ class ASTIndexNode : public ASTNode
     }
 
   private:
-    unsigned int value;
+    IFileContentProvider* content_provider;
+    unsigned int          value;
 };
 
 
@@ -247,15 +156,41 @@ class ASTFuncNode : public ASTNode
 {
   public:
 //------------------------------------------------------------------------------
-    ASTFuncNode( Token::TokenType val )
+    ASTFuncNode( Token::TokenType val, IFileContentProvider* content_provider_ )
     {
-        func = val;
+        content_provider = content_provider_;
+        func             = val;
     }
 
 //------------------------------------------------------------------------------
     virtual ResultPtr eval()
     {
         ResultPtr res = std::move( ResultPtr( new NumericResult( 0 ) ) );
+
+        struct stat filestatus;
+        std::string ext;
+
+        switch ( func ) {
+        case Token::FUNC_EXT:
+            ext = GetFileExtension( content_provider->get_file_name() );
+            std::transform( ext.begin(), ext.end(), ext.begin(), toupper );
+            res = std::move( ResultPtr( new StringResult( ext ) ) );
+            break;
+        case Token::FUNC_SIZE:
+            stat( content_provider->get_file_name().c_str(), &filestatus );
+            res = std::move( ResultPtr( new NumericResult( filestatus.st_size ) ) );
+            break;
+        case Token::FUNC_FORCE:
+            res = std::move( ResultPtr( new BooleanResult( true ) ) );
+            break;
+        case Token::FUNC_MULTIMEDIA:
+            res = std::move( ResultPtr( new BooleanResult( true ) ) );
+            break;
+        default:
+            res = std::move( ResultPtr( new BooleanResult( false ) ) );
+            break;
+        }
+
         return res;
     };
 
@@ -285,7 +220,8 @@ class ASTFuncNode : public ASTNode
     }
 
   private:
-      Token::TokenType func;
+    IFileContentProvider* content_provider;
+    Token::TokenType      func;
 };
 
 
@@ -294,10 +230,12 @@ class ASTFunc1Node : public ASTNode
 {
   public:
 //------------------------------------------------------------------------------
-    ASTFunc1Node( std::string val1, std::string val2 )
+    ASTFunc1Node( std::string val1, std::string val2,
+                  IFileContentProvider* content_provider_ )
     {
-        str = val1;
-        arg = val2;
+        content_provider = content_provider_;
+        str              = val1;
+        arg              = val2;
     }
 
 //------------------------------------------------------------------------------
@@ -316,8 +254,9 @@ class ASTFunc1Node : public ASTNode
     }
 
   private:
-    std::string str;
-    std::string arg;
+    std::string           str;
+    std::string           arg;
+    IFileContentProvider* content_provider;
 };
 
 

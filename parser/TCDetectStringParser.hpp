@@ -37,9 +37,11 @@ class TCDetectStringParser
     }
 
 //------------------------------------------------------------------------------
-    bool parse( std::string str )
+    bool parse( std::string str,  std::string file_name = "" )
     {
         bool ret = false;
+
+        fc.set_file_name( file_name );
 
         lexer.set_text( str );
 
@@ -58,6 +60,12 @@ class TCDetectStringParser
     std::string to_string()
     {
         return tree->to_string();
+    }
+
+//
+    std::unique_ptr<ASTNode> get_result_AST()
+    {
+        return std::move( tree );
     }
 
   private:
@@ -118,7 +126,7 @@ class TCDetectStringParser
         case Token::FUNC_SIZE:
         case Token::FUNC_FORCE:
         case Token::FUNC_MULTIMEDIA:
-            *node = std::move( std::unique_ptr<ASTNode>( new ASTFuncNode( tk.type ) ) );
+            *node = std::move( std::unique_ptr<ASTNode>( new ASTFuncNode( tk.type, &fc ) ) );
             ret   = true;
             break;
         case Token::FUNC_FIND:
@@ -127,7 +135,7 @@ class TCDetectStringParser
             GET_AND_EXPECT( tk, Token::OPEN_BR );
             GET_AND_EXPECT( tk, Token::STRING );
             {
-                *node = std::move( std::unique_ptr<ASTNode>( new ASTFunc1Node( func, tk.value ) ) );
+                *node = std::move( std::unique_ptr<ASTNode>( new ASTFunc1Node( func, tk.value, &fc ) ) );
                 ret   = true;
             }
             GET_AND_EXPECT( tk, Token::CLOSE_BR );
@@ -143,7 +151,7 @@ class TCDetectStringParser
         case Token::OPEN_BR_SQ:
             GET_AND_EXPECT( tk, Token::NUM );
             {
-                *node = std::move( std::unique_ptr<ASTNode>( new ASTIndexNode( tk.value ) ) );
+                *node = std::move( std::unique_ptr<ASTNode>( new ASTIndexNode( tk.value, &fc ) ) );
                 ret   = true;
             }
             GET_AND_EXPECT( tk, Token::CLOSE_BR_SQ );
@@ -171,6 +179,9 @@ class TCDetectStringParser
     TCDetectStringLexer      lexer;
     Token                    tk;
     std::unique_ptr<ASTNode> tree;
+
+    TCDetectStringFileContent fc;
 };
+
 
 #endif // TCDetectStringParser_H

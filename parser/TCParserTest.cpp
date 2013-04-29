@@ -333,11 +333,56 @@ BOOST_AUTO_TEST_CASE( result_test2 )
 
     res1 = std::move( Result::convert_to_type( Result::STRING,  res1 ) );
     BOOST_CHECK_EQUAL( res1->get_type(), Result::STRING );
+    BOOST_CHECK_EQUAL( res1->to_str(), "10" );
     res1 = std::move( Result::convert_to_type( Result::NUMERIC,  res1 ) );
     BOOST_CHECK_EQUAL( res1->get_type(), Result::NUMERIC );
+    BOOST_CHECK_EQUAL( res1->to_num(), 10 );
     res1 = std::move( Result::convert_to_type( Result::BOOLEAN,  res1 ) );
     BOOST_CHECK_EQUAL( res1->get_type(), Result::BOOLEAN );
+    BOOST_CHECK_EQUAL( res1->to_bool(), true );
+
     BOOST_CHECK_EQUAL( res2->to_bool(), true );
     BOOST_CHECK_EQUAL( res2->to_num(), 12 );
     BOOST_CHECK_EQUAL( res2->to_str(), "12" );
+}
+
+
+BOOST_AUTO_TEST_CASE( eval_test1 )
+{
+    TCDetectStringParser parser;
+
+    BOOST_CHECK_EQUAL( parser.parse( "Size", "c:\\autoexec.bat" ), true );
+    BOOST_CHECK_EQUAL( parser.to_string(), "SIZE" );
+    std::unique_ptr<ASTNode> ast    = parser.get_result_AST();
+    ResultPtr                result = ast->eval();
+    BOOST_CHECK_EQUAL( result->get_type(), Result::NUMERIC );
+    BOOST_CHECK_EQUAL( result->to_num(), 24 );
+
+    BOOST_CHECK_EQUAL( parser.parse( "Ext", "c:\\autoexec.bat" ), true );
+    BOOST_CHECK_EQUAL( parser.to_string(), "EXT" );
+    ast    = parser.get_result_AST();
+    result = ast->eval();
+    BOOST_CHECK_EQUAL( result->get_type(), Result::STRING );
+    BOOST_CHECK_EQUAL( result->to_str(), "BAT" );
+
+    BOOST_CHECK_EQUAL( parser.parse( "exT", "exec.batch" ), true );
+    BOOST_CHECK_EQUAL( parser.to_string(), "EXT" );
+    ast    = parser.get_result_AST();
+    result = ast->eval();
+    BOOST_CHECK_EQUAL( result->get_type(), Result::STRING );
+    BOOST_CHECK_EQUAL( result->to_str(), "BATCH" );
+
+    BOOST_CHECK_EQUAL( parser.parse( "multimeDia", "exec.batch" ), true );
+    BOOST_CHECK_EQUAL( parser.to_string(), "MULTIMEDIA" );
+    ast    = parser.get_result_AST();
+    result = ast->eval();
+    BOOST_CHECK_EQUAL( result->get_type(), Result::BOOLEAN );
+    BOOST_CHECK_EQUAL( result->to_bool(), true );
+
+    BOOST_CHECK_EQUAL( parser.parse( "forcE", "exec.batch" ), true );
+    BOOST_CHECK_EQUAL( parser.to_string(), "FORCE" );
+    ast    = parser.get_result_AST();
+    result = ast->eval();
+    BOOST_CHECK_EQUAL( result->get_type(), Result::BOOLEAN );
+    BOOST_CHECK_EQUAL( result->to_bool(), true );
 }
