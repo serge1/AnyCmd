@@ -249,34 +249,48 @@ BOOST_AUTO_TEST_CASE( parser_test3 )
     TCDetectStringParser parser;
 
     BOOST_CHECK_EQUAL( parser.parse( "EXT=\"CPP\"" ), true );
-    BOOST_CHECK_EQUAL( parser.to_string(), "(EXT=\"CPP\")" );
+    std::unique_ptr<ASTNode> ast = parser.get_result_AST();
+    BOOST_CHECK_EQUAL( ast->to_string(), "(EXT=\"CPP\")" );
 
     BOOST_CHECK_EQUAL( parser.parse( "EXT=\"CPP\" | EXT=\"EXE\" | EXT=\"BAT\"" ), true );
-    BOOST_CHECK_EQUAL( parser.to_string(), "((EXT=\"CPP\")|((EXT=\"EXE\")|(EXT=\"BAT\")))" );
+    ast = parser.get_result_AST();
+    BOOST_CHECK_EQUAL( ast->to_string(), "((EXT=\"CPP\")|((EXT=\"EXE\")|(EXT=\"BAT\")))" );
 
     BOOST_CHECK_EQUAL( parser.parse( "SIZE > 100" ), true );
-    BOOST_CHECK_EQUAL( parser.to_string(), "(SIZE>100)" );
+    ast = parser.get_result_AST();
+    BOOST_CHECK_EQUAL( ast->to_string(), "(SIZE>100)" );
 
     BOOST_CHECK_EQUAL( parser.parse( "SIZE > 100 | FORCE" ), true );
-    BOOST_CHECK_EQUAL( parser.to_string(), "((SIZE>100)|FORCE)" );
+    ast = parser.get_result_AST();
+    BOOST_CHECK_EQUAL( ast->to_string(), "((SIZE>100)|FORCE)" );
 
     BOOST_CHECK_EQUAL( parser.parse( "[1]=\"a\" & [2] | [3]<5 & EXT!=\"b\"" ), true );
-    BOOST_CHECK_EQUAL( parser.to_string(), "((([1]=\"a\")&[2])|(([3]<5)&(EXT!=\"b\")))" );
+    ast = parser.get_result_AST();
+    BOOST_CHECK_EQUAL( ast->to_string(), "((([1]=\"a\")&[2])|(([3]<5)&(EXT!=\"b\")))" );
 
     BOOST_CHECK_EQUAL( parser.parse( "[1]=5&FORCE" ), true );
-    BOOST_CHECK_EQUAL( parser.to_string(), "(([1]=5)&FORCE)" );
+    ast = parser.get_result_AST();
+    BOOST_CHECK_EQUAL( ast->to_string(), "(([1]=5)&FORCE)" );
 
     BOOST_CHECK_EQUAL( parser.parse( "FORCE&[1]=5" ), true );
-    BOOST_CHECK_EQUAL( parser.to_string(), "(FORCE&([1]=5))" );
+    ast = parser.get_result_AST();
+    BOOST_CHECK_EQUAL( ast->to_string(), "(FORCE&([1]=5))" );
 
     BOOST_CHECK_EQUAL( parser.parse( "[1]=(5&FORCE)" ), true );
-    BOOST_CHECK_EQUAL( parser.to_string(), "([1]=(5&FORCE))" );
+    ast = parser.get_result_AST();
+    BOOST_CHECK_EQUAL( ast->to_string(), "([1]=(5&FORCE))" );
 
     BOOST_CHECK_EQUAL( parser.parse( "(FORCE&[1])=5" ), true );
-    BOOST_CHECK_EQUAL( parser.to_string(), "((FORCE&[1])=5)" );
+    ast = parser.get_result_AST();
+    BOOST_CHECK_EQUAL( ast->to_string(), "((FORCE&[1])=5)" );
 
     BOOST_CHECK_EQUAL( parser.parse( "(EXT!=5)" ), true );
-    BOOST_CHECK_EQUAL( parser.to_string(), "(EXT!=5)" );
+    ast = parser.get_result_AST();
+    BOOST_CHECK_EQUAL( ast->to_string(), "(EXT!=5)" );
+
+    BOOST_CHECK_EQUAL( parser.parse( "(Size > 10 & Size < 1000) & (ext=\"bat\")" ), true );
+    ast = parser.get_result_AST();
+    BOOST_CHECK_EQUAL( ast->to_string(), "(((SIZE>10)&(SIZE<1000))&(EXT=\"bat\"))" );
 }
 
 
@@ -331,13 +345,13 @@ BOOST_AUTO_TEST_CASE( result_test2 )
     BOOST_CHECK_EQUAL( Result::get_common( res2->get_type(), res3->get_type() ), Result::BOOLEAN );
     BOOST_CHECK_EQUAL( Result::get_common( res3->get_type(), res1->get_type() ), Result::BOOLEAN );
 
-    res1 = std::move( Result::convert_to_type( Result::STRING,  res1 ) );
+    res1 = std::move( Result::convert_to_type( Result::STRING,  *res1 ) );
     BOOST_CHECK_EQUAL( res1->get_type(), Result::STRING );
     BOOST_CHECK_EQUAL( res1->to_str(), "10" );
-    res1 = std::move( Result::convert_to_type( Result::NUMERIC,  res1 ) );
+    res1 = std::move( Result::convert_to_type( Result::NUMERIC,  *res1 ) );
     BOOST_CHECK_EQUAL( res1->get_type(), Result::NUMERIC );
     BOOST_CHECK_EQUAL( res1->to_num(), 10 );
-    res1 = std::move( Result::convert_to_type( Result::BOOLEAN,  res1 ) );
+    res1 = std::move( Result::convert_to_type( Result::BOOLEAN,  *res1 ) );
     BOOST_CHECK_EQUAL( res1->get_type(), Result::BOOLEAN );
     BOOST_CHECK_EQUAL( res1->to_bool(), true );
 
@@ -352,8 +366,8 @@ BOOST_AUTO_TEST_CASE( eval_test1 )
     TCDetectStringParser parser;
 
     BOOST_CHECK_EQUAL( parser.parse( "Size" ), true );
-    BOOST_CHECK_EQUAL( parser.to_string(), "SIZE" );
     std::unique_ptr<ASTNode> ast = parser.get_result_AST();
+    BOOST_CHECK_EQUAL( ast->to_string(), "SIZE" );
     TCDetectStringFileContent fc( "c:\\autoexec.bat" );
     ast->set_content_provider( &fc );
     ResultPtr result = ast->eval();
@@ -361,8 +375,8 @@ BOOST_AUTO_TEST_CASE( eval_test1 )
     BOOST_CHECK_EQUAL( result->to_num(), 24 );
 
     BOOST_CHECK_EQUAL( parser.parse( "Ext" ), true );
-    BOOST_CHECK_EQUAL( parser.to_string(), "EXT" );
     ast = parser.get_result_AST();
+    BOOST_CHECK_EQUAL( ast->to_string(), "EXT" );
     fc.set_file_name( "c:\\autoexec.bat" );
     ast->set_content_provider( &fc );
     result = ast->eval();
@@ -370,8 +384,8 @@ BOOST_AUTO_TEST_CASE( eval_test1 )
     BOOST_CHECK_EQUAL( result->to_str(), "BAT" );
 
     BOOST_CHECK_EQUAL( parser.parse( "exT" ), true );
-    BOOST_CHECK_EQUAL( parser.to_string(), "EXT" );
     ast = parser.get_result_AST();
+    BOOST_CHECK_EQUAL( ast->to_string(), "EXT" );
     fc.set_file_name( "exec.batch" );
     ast->set_content_provider( &fc );
     result = ast->eval();
@@ -379,18 +393,65 @@ BOOST_AUTO_TEST_CASE( eval_test1 )
     BOOST_CHECK_EQUAL( result->to_str(), "BATCH" );
 
     BOOST_CHECK_EQUAL( parser.parse( "multimeDia" ), true );
-    BOOST_CHECK_EQUAL( parser.to_string(), "MULTIMEDIA" );
     ast = parser.get_result_AST();
+    BOOST_CHECK_EQUAL( ast->to_string(), "MULTIMEDIA" );
     ast->set_content_provider( &fc );
     result = ast->eval();
     BOOST_CHECK_EQUAL( result->get_type(), Result::BOOLEAN );
     BOOST_CHECK_EQUAL( result->to_bool(), true );
 
     BOOST_CHECK_EQUAL( parser.parse( "forcE" ), true );
-    BOOST_CHECK_EQUAL( parser.to_string(), "FORCE" );
     ast = parser.get_result_AST();
+    BOOST_CHECK_EQUAL( ast->to_string(), "FORCE" );
     ast->set_content_provider( &fc );
     result = ast->eval();
     BOOST_CHECK_EQUAL( result->get_type(), Result::BOOLEAN );
     BOOST_CHECK_EQUAL( result->to_bool(), true );
+}
+
+
+BOOST_AUTO_TEST_CASE( eval_test2 )
+{
+    TCDetectStringParser parser;
+
+    BOOST_CHECK_EQUAL( parser.parse( "Size = 10" ), true );
+    std::unique_ptr<ASTNode> ast = parser.get_result_AST();
+    BOOST_CHECK_EQUAL( ast->to_string(), "(SIZE=10)" );
+    TCDetectStringFileContent fc( "c:\\autoexec.bat" );
+    ast->set_content_provider( &fc );
+    ResultPtr result = ast->eval();
+    BOOST_CHECK_EQUAL( result->get_type(), Result::BOOLEAN );
+    BOOST_CHECK_EQUAL( result->to_bool(), false );
+
+    BOOST_CHECK_EQUAL( parser.parse( "Size = 10 | Size < 1000" ), true );
+    ast = parser.get_result_AST();
+    BOOST_CHECK_EQUAL( ast->to_string(), "((SIZE=10)|(SIZE<1000))" );
+    ast->set_content_provider( &fc );
+    result = ast->eval();
+    BOOST_CHECK_EQUAL( result->get_type(), Result::BOOLEAN );
+    BOOST_CHECK_EQUAL( result->to_bool(), true );
+
+    BOOST_CHECK_EQUAL( parser.parse( "Size > 10 & Size < 1000" ), true );
+    ast = parser.get_result_AST();
+    BOOST_CHECK_EQUAL( ast->to_string(), "((SIZE>10)&(SIZE<1000))" );
+    ast->set_content_provider( &fc );
+    result = ast->eval();
+    BOOST_CHECK_EQUAL( result->get_type(), Result::BOOLEAN );
+    BOOST_CHECK_EQUAL( result->to_bool(), true );
+
+    BOOST_CHECK_EQUAL( parser.parse( "(Size > 10 & Size < 1000) & (ext=\"bat\")" ), true );
+    ast = parser.get_result_AST();
+    BOOST_CHECK_EQUAL( ast->to_string(), "(((SIZE>10)&(SIZE<1000))&(EXT=\"bat\"))" );
+    ast->set_content_provider( &fc );
+    result = ast->eval();
+    BOOST_CHECK_EQUAL( result->get_type(), Result::BOOLEAN );
+    BOOST_CHECK_EQUAL( result->to_bool(), true );
+
+    BOOST_CHECK_EQUAL( parser.parse( "(Size > 10 & Size < 1000) & ext=\"kkk\"" ), true );
+    ast = parser.get_result_AST();
+    BOOST_CHECK_EQUAL( ast->to_string(), "(((SIZE>10)&(SIZE<1000))&(EXT=\"kkk\"))" );
+    ast->set_content_provider( &fc );
+    result = ast->eval();
+    BOOST_CHECK_EQUAL( result->get_type(), Result::BOOLEAN );
+    BOOST_CHECK_EQUAL( result->to_bool(), false );
 }

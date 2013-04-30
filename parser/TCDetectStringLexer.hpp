@@ -28,22 +28,6 @@ searchAndReplace( std::string& value, std::string const& search,
 }
 
 
-std::string GetFileExtension( const std::string& FileName )
-{
-    size_t pos      = FileName.find_last_of(".");
-    size_t slashpos = FileName.find_last_of("\\");
-    if ( slashpos != std::string::npos ) {
-        if ( pos != std::string::npos &&
-             pos < slashpos ) {
-            return "";
-        }
-    }
-    if( pos != std::string::npos ) {
-        return FileName.substr( pos + 1 );
-    }
-    return "";
-}
-
 //------------------------------------------------------------------------------
 class Token {
   public:

@@ -1,6 +1,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sstream>
+#include <fstream>
 #include <memory>
 #include "TCDetectStringLexer.hpp"
 #include "TCDetectStringResult.hpp"
@@ -9,10 +10,13 @@
 class IFileContentProvider
 {
   public:  
-    virtual ~IFileContentProvider()             {};
-    virtual std::string  get_file_name() const = 0;
-    virtual const char*  get_content()         = 0;
-    virtual unsigned int get_content_size()    = 0;
+    virtual ~IFileContentProvider()                        {};
+    virtual std::string  get_file_name()            const = 0;
+    virtual std::string  get_file_ext()             const = 0;
+    virtual unsigned int get_file_size()            const = 0;
+    virtual unsigned int get_content_at( unsigned int i ) = 0;
+    virtual unsigned int get_content_size()               = 0;
+    virtual bool         find( std::string str, bool case_insensitive ) = 0;
 };
 
 
@@ -31,7 +35,30 @@ class TCDetectStringFileContent : public IFileContentProvider
         return file_name;
     }
 
-    virtual const char*  get_content()
+    virtual std::string get_file_ext() const
+    {
+        size_t pos      = file_name.find_last_of(".");
+        size_t slashpos = file_name.find_last_of("\\");
+        if ( slashpos != std::string::npos ) {
+            if ( pos != std::string::npos &&
+                 pos < slashpos ) {
+                return "";
+            }
+        }
+        if( pos != std::string::npos ) {
+            return file_name.substr( pos + 1 );
+        }
+        return "";
+    }
+
+    virtual unsigned int get_file_size() const
+    {
+        struct stat filestatus;
+        stat( file_name.c_str(), &filestatus );
+        return filestatus.st_size;
+    }
+
+    virtual unsigned int get_content_at( unsigned int i )
     {
         return 0;
     }
@@ -39,6 +66,11 @@ class TCDetectStringFileContent : public IFileContentProvider
     virtual unsigned int get_content_size()
     {
         return 0;
+    }
+
+    virtual bool find( std::string str, bool case_insensitive )
+    {
+        return true;
     }
 
   private:
@@ -126,21 +158,18 @@ class ASTIndexNode : public ASTNode
         value = std::strtoul( val.c_str(), 0 , 0 );
     }
 
-
 //------------------------------------------------------------------------------
     virtual void set_content_provider( IFileContentProvider* provider )
     {
         content_provider = provider;
     }
 
-
 //------------------------------------------------------------------------------
     virtual ResultPtr eval()
     {
         unsigned int res_value = 0;
         if ( value < content_provider->get_content_size() ) {
-            const char* content = content_provider->get_content();
-            res_value = content[value];
+            res_value = content_provider->get_content_at( value );
         }
         ResultPtr res = std::move( ResultPtr( new NumericResult( res_value ) ) );
         return res;
@@ -177,24 +206,22 @@ class ASTFuncNode : public ASTNode
         content_provider = provider;
     }
 
-
 //------------------------------------------------------------------------------
     virtual ResultPtr eval()
     {
         ResultPtr res = std::move( ResultPtr( new NumericResult( 0 ) ) );
 
-        struct stat filestatus;
         std::string ext;
 
         switch ( func ) {
         case Token::FUNC_EXT:
-            ext = GetFileExtension( content_provider->get_file_name() );
+            ext = content_provider->get_file_ext();
             std::transform( ext.begin(), ext.end(), ext.begin(), toupper );
             res = std::move( ResultPtr( new StringResult( ext ) ) );
             break;
         case Token::FUNC_SIZE:
-            stat( content_provider->get_file_name().c_str(), &filestatus );
-            res = std::move( ResultPtr( new NumericResult( filestatus.st_size ) ) );
+            res = std::move( ResultPtr(
+                new NumericResult( content_provider->get_file_size() ) ) );
             break;
         case Token::FUNC_FORCE:
             res = std::move( ResultPtr( new BooleanResult( true ) ) );
@@ -260,11 +287,11 @@ class ASTFunc1Node : public ASTNode
         content_provider = provider;
     }
 
-
 //------------------------------------------------------------------------------
     virtual ResultPtr eval()
     {
-        ResultPtr res = std::move( ResultPtr( new BooleanResult( false ) ) );
+        bool found = content_provider->find( arg, str == "FINDI" );
+        ResultPtr res = std::move( ResultPtr( new BooleanResult( found ) ) );
         return res;
     };
 
@@ -304,11 +331,38 @@ class ASTOpNode : public ASTNode
         right->set_content_provider( provider );
     }
 
-
 //------------------------------------------------------------------------------
     virtual ResultPtr eval()
     {
-        ResultPtr res = std::move( ResultPtr( new NumericResult( 0 ) ) );
+        ResultPtr res;
+        switch ( op ) {
+        case Token::OP_OR:
+            res = std::move( ResultPtr(
+                new BooleanResult( left->eval() || right->eval() ) ) );
+            break;
+        case Token::OP_AND:
+            res = std::move( ResultPtr(
+                new BooleanResult( left->eval() && right->eval() ) ) );
+            break;
+        case Token::OP_LG:
+            res = std::move( ResultPtr(
+                new BooleanResult( left->eval() > right->eval() ) ) );
+            break;
+        case Token::OP_SM:
+            res = std::move( ResultPtr(
+                new BooleanResult( left->eval() < right->eval() ) ) );
+            break;
+        case Token::OP_NEQ:
+            res = std::move( ResultPtr(
+                new BooleanResult( left->eval() != right->eval() ) ) );
+            break;
+        case Token::OP_EQ:
+            res = std::move( ResultPtr(
+                new BooleanResult( left->eval() == right->eval() ) ) );
+            break;
+        default:
+            break;
+        }
         return res;
     };
 

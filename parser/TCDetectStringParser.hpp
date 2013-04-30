@@ -54,12 +54,6 @@ class TCDetectStringParser
         return ret;
     }
 
-//------------------------------------------------------------------------------
-    std::string to_string()
-    {
-        return tree->to_string();
-    }
-
 //
     std::unique_ptr<ASTNode> get_result_AST()
     {
@@ -157,7 +151,7 @@ class TCDetectStringParser
         case Token::OPEN_BR:
             tk  = lexer.get_next_token();
             ret = parse_expr( 0, node );
-            if ( tk.type != Token::CLOSE_BR ) return false;
+            EXPECT( tk, Token::CLOSE_BR );
             break;
         case Token::OP_NOT:
             GET_AND_EXPECT( tk, Token::OPEN_BR );
