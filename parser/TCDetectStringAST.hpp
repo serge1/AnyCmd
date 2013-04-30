@@ -51,6 +51,7 @@ class ASTNode
 {
   public:
     virtual             ~ASTNode()  {}
+    virtual void        set_content_provider( IFileContentProvider* provider ) {};
     virtual ResultPtr   eval()      = 0;
     virtual std::string to_string() = 0;
 };
@@ -119,11 +120,19 @@ class ASTIndexNode : public ASTNode
 {
   public:
 //------------------------------------------------------------------------------
-    ASTIndexNode( std::string val, IFileContentProvider* content_provider_ )
+    ASTIndexNode( std::string val, IFileContentProvider* content_provider_ = 0 )
     {
         content_provider = content_provider_;
         value = std::strtoul( val.c_str(), 0 , 0 );
     }
+
+
+//------------------------------------------------------------------------------
+    virtual void set_content_provider( IFileContentProvider* provider )
+    {
+        content_provider = provider;
+    }
+
 
 //------------------------------------------------------------------------------
     virtual ResultPtr eval()
@@ -156,11 +165,18 @@ class ASTFuncNode : public ASTNode
 {
   public:
 //------------------------------------------------------------------------------
-    ASTFuncNode( Token::TokenType val, IFileContentProvider* content_provider_ )
+    ASTFuncNode( Token::TokenType val, IFileContentProvider* content_provider_ = 0 )
     {
         content_provider = content_provider_;
         func             = val;
     }
+
+//------------------------------------------------------------------------------
+    virtual void set_content_provider( IFileContentProvider* provider )
+    {
+        content_provider = provider;
+    }
+
 
 //------------------------------------------------------------------------------
     virtual ResultPtr eval()
@@ -231,12 +247,19 @@ class ASTFunc1Node : public ASTNode
   public:
 //------------------------------------------------------------------------------
     ASTFunc1Node( std::string val1, std::string val2,
-                  IFileContentProvider* content_provider_ )
+                  IFileContentProvider* content_provider_ = 0 )
     {
         content_provider = content_provider_;
         str              = val1;
         arg              = val2;
     }
+
+//------------------------------------------------------------------------------
+    virtual void set_content_provider( IFileContentProvider* provider )
+    {
+        content_provider = provider;
+    }
+
 
 //------------------------------------------------------------------------------
     virtual ResultPtr eval()
@@ -273,6 +296,14 @@ class ASTOpNode : public ASTNode
         left  = std::move( val1 );
         right = std::move( val2 );
     }
+
+//------------------------------------------------------------------------------
+    virtual void set_content_provider( IFileContentProvider* provider )
+    {
+        left ->set_content_provider( provider );
+        right->set_content_provider( provider );
+    }
+
 
 //------------------------------------------------------------------------------
     virtual ResultPtr eval()

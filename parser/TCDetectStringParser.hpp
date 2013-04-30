@@ -41,8 +41,6 @@ class TCDetectStringParser
     {
         bool ret = false;
 
-        fc.set_file_name( file_name );
-
         lexer.set_text( str );
 
         tk = lexer.get_next_token();
@@ -126,7 +124,7 @@ class TCDetectStringParser
         case Token::FUNC_SIZE:
         case Token::FUNC_FORCE:
         case Token::FUNC_MULTIMEDIA:
-            *node = std::move( std::unique_ptr<ASTNode>( new ASTFuncNode( tk.type, &fc ) ) );
+            *node = std::move( std::unique_ptr<ASTNode>( new ASTFuncNode( tk.type ) ) );
             ret   = true;
             break;
         case Token::FUNC_FIND:
@@ -135,7 +133,7 @@ class TCDetectStringParser
             GET_AND_EXPECT( tk, Token::OPEN_BR );
             GET_AND_EXPECT( tk, Token::STRING );
             {
-                *node = std::move( std::unique_ptr<ASTNode>( new ASTFunc1Node( func, tk.value, &fc ) ) );
+                *node = std::move( std::unique_ptr<ASTNode>( new ASTFunc1Node( func, tk.value ) ) );
                 ret   = true;
             }
             GET_AND_EXPECT( tk, Token::CLOSE_BR );
@@ -151,7 +149,7 @@ class TCDetectStringParser
         case Token::OPEN_BR_SQ:
             GET_AND_EXPECT( tk, Token::NUM );
             {
-                *node = std::move( std::unique_ptr<ASTNode>( new ASTIndexNode( tk.value, &fc ) ) );
+                *node = std::move( std::unique_ptr<ASTNode>( new ASTIndexNode( tk.value ) ) );
                 ret   = true;
             }
             GET_AND_EXPECT( tk, Token::CLOSE_BR_SQ );
@@ -179,8 +177,6 @@ class TCDetectStringParser
     TCDetectStringLexer      lexer;
     Token                    tk;
     std::unique_ptr<ASTNode> tree;
-
-    TCDetectStringFileContent fc;
 };
 
 

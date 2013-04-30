@@ -351,37 +351,45 @@ BOOST_AUTO_TEST_CASE( eval_test1 )
 {
     TCDetectStringParser parser;
 
-    BOOST_CHECK_EQUAL( parser.parse( "Size", "c:\\autoexec.bat" ), true );
+    BOOST_CHECK_EQUAL( parser.parse( "Size" ), true );
     BOOST_CHECK_EQUAL( parser.to_string(), "SIZE" );
-    std::unique_ptr<ASTNode> ast    = parser.get_result_AST();
-    ResultPtr                result = ast->eval();
+    std::unique_ptr<ASTNode> ast = parser.get_result_AST();
+    TCDetectStringFileContent fc( "c:\\autoexec.bat" );
+    ast->set_content_provider( &fc );
+    ResultPtr result = ast->eval();
     BOOST_CHECK_EQUAL( result->get_type(), Result::NUMERIC );
     BOOST_CHECK_EQUAL( result->to_num(), 24 );
 
-    BOOST_CHECK_EQUAL( parser.parse( "Ext", "c:\\autoexec.bat" ), true );
+    BOOST_CHECK_EQUAL( parser.parse( "Ext" ), true );
     BOOST_CHECK_EQUAL( parser.to_string(), "EXT" );
-    ast    = parser.get_result_AST();
+    ast = parser.get_result_AST();
+    fc.set_file_name( "c:\\autoexec.bat" );
+    ast->set_content_provider( &fc );
     result = ast->eval();
     BOOST_CHECK_EQUAL( result->get_type(), Result::STRING );
     BOOST_CHECK_EQUAL( result->to_str(), "BAT" );
 
-    BOOST_CHECK_EQUAL( parser.parse( "exT", "exec.batch" ), true );
+    BOOST_CHECK_EQUAL( parser.parse( "exT" ), true );
     BOOST_CHECK_EQUAL( parser.to_string(), "EXT" );
-    ast    = parser.get_result_AST();
+    ast = parser.get_result_AST();
+    fc.set_file_name( "exec.batch" );
+    ast->set_content_provider( &fc );
     result = ast->eval();
     BOOST_CHECK_EQUAL( result->get_type(), Result::STRING );
     BOOST_CHECK_EQUAL( result->to_str(), "BATCH" );
 
-    BOOST_CHECK_EQUAL( parser.parse( "multimeDia", "exec.batch" ), true );
+    BOOST_CHECK_EQUAL( parser.parse( "multimeDia" ), true );
     BOOST_CHECK_EQUAL( parser.to_string(), "MULTIMEDIA" );
-    ast    = parser.get_result_AST();
+    ast = parser.get_result_AST();
+    ast->set_content_provider( &fc );
     result = ast->eval();
     BOOST_CHECK_EQUAL( result->get_type(), Result::BOOLEAN );
     BOOST_CHECK_EQUAL( result->to_bool(), true );
 
-    BOOST_CHECK_EQUAL( parser.parse( "forcE", "exec.batch" ), true );
+    BOOST_CHECK_EQUAL( parser.parse( "forcE" ), true );
     BOOST_CHECK_EQUAL( parser.to_string(), "FORCE" );
-    ast    = parser.get_result_AST();
+    ast = parser.get_result_AST();
+    ast->set_content_provider( &fc );
     result = ast->eval();
     BOOST_CHECK_EQUAL( result->get_type(), Result::BOOLEAN );
     BOOST_CHECK_EQUAL( result->to_bool(), true );
