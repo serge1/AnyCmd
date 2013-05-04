@@ -368,11 +368,11 @@ BOOST_AUTO_TEST_CASE( eval_test1 )
     BOOST_CHECK_EQUAL( parser.parse( "Size" ), true );
     std::unique_ptr<ASTNode> ast = parser.get_result_AST();
     BOOST_CHECK_EQUAL( ast->to_string(), "SIZE" );
-    TCDetectStringFileContent fc( "c:\\autoexec.bat" );
+    TCDetectStringFileContent fc( "test_files\\test_file.log" );
     ast->set_content_provider( &fc );
     ResultPtr result = ast->eval();
     BOOST_CHECK_EQUAL( result->get_type(), Result::NUMERIC );
-    BOOST_CHECK_EQUAL( result->to_num(), 24 );
+    BOOST_CHECK_EQUAL( result->to_num(), 1760 );
 
     BOOST_CHECK_EQUAL( parser.parse( "Ext" ), true );
     ast = parser.get_result_AST();
@@ -417,41 +417,66 @@ BOOST_AUTO_TEST_CASE( eval_test2 )
     BOOST_CHECK_EQUAL( parser.parse( "Size = 10" ), true );
     std::unique_ptr<ASTNode> ast = parser.get_result_AST();
     BOOST_CHECK_EQUAL( ast->to_string(), "(SIZE=10)" );
-    TCDetectStringFileContent fc( "c:\\autoexec.bat" );
+    TCDetectStringFileContent fc( "test_files\\test_file.log" );
     ast->set_content_provider( &fc );
     ResultPtr result = ast->eval();
     BOOST_CHECK_EQUAL( result->get_type(), Result::BOOLEAN );
     BOOST_CHECK_EQUAL( result->to_bool(), false );
 
-    BOOST_CHECK_EQUAL( parser.parse( "Size = 10 | Size < 1000" ), true );
+    BOOST_CHECK_EQUAL( parser.parse( "Size = 10 | Size < 10000" ), true );
     ast = parser.get_result_AST();
-    BOOST_CHECK_EQUAL( ast->to_string(), "((SIZE=10)|(SIZE<1000))" );
+    BOOST_CHECK_EQUAL( ast->to_string(), "((SIZE=10)|(SIZE<10000))" );
     ast->set_content_provider( &fc );
     result = ast->eval();
     BOOST_CHECK_EQUAL( result->get_type(), Result::BOOLEAN );
     BOOST_CHECK_EQUAL( result->to_bool(), true );
 
-    BOOST_CHECK_EQUAL( parser.parse( "Size > 10 & Size < 1000" ), true );
+    BOOST_CHECK_EQUAL( parser.parse( "Size > 10 & Size < 10000" ), true );
     ast = parser.get_result_AST();
-    BOOST_CHECK_EQUAL( ast->to_string(), "((SIZE>10)&(SIZE<1000))" );
+    BOOST_CHECK_EQUAL( ast->to_string(), "((SIZE>10)&(SIZE<10000))" );
     ast->set_content_provider( &fc );
     result = ast->eval();
     BOOST_CHECK_EQUAL( result->get_type(), Result::BOOLEAN );
     BOOST_CHECK_EQUAL( result->to_bool(), true );
 
-    BOOST_CHECK_EQUAL( parser.parse( "(Size > 10 & Size < 1000) & (ext=\"bat\")" ), true );
+    BOOST_CHECK_EQUAL( parser.parse( "(Size > 10 & Size < 10000) & (ext=\"log\")" ), true );
     ast = parser.get_result_AST();
-    BOOST_CHECK_EQUAL( ast->to_string(), "(((SIZE>10)&(SIZE<1000))&(EXT=\"bat\"))" );
+    BOOST_CHECK_EQUAL( ast->to_string(), "(((SIZE>10)&(SIZE<10000))&(EXT=\"log\"))" );
     ast->set_content_provider( &fc );
     result = ast->eval();
     BOOST_CHECK_EQUAL( result->get_type(), Result::BOOLEAN );
     BOOST_CHECK_EQUAL( result->to_bool(), true );
 
-    BOOST_CHECK_EQUAL( parser.parse( "(Size > 10 & Size < 1000) & ext=\"kkk\"" ), true );
+    BOOST_CHECK_EQUAL( parser.parse( "Size = 1760" ), true );
     ast = parser.get_result_AST();
-    BOOST_CHECK_EQUAL( ast->to_string(), "(((SIZE>10)&(SIZE<1000))&(EXT=\"kkk\"))" );
+    BOOST_CHECK_EQUAL( ast->to_string(), "(SIZE=1760)" );
+    ast->set_content_provider( &fc );
+    result = ast->eval();
+    BOOST_CHECK_EQUAL( result->get_type(), Result::BOOLEAN );
+    BOOST_CHECK_EQUAL( result->to_bool(), true );
+
+    BOOST_CHECK_EQUAL( parser.parse( "Size" ), true );
+    ast = parser.get_result_AST();
+    BOOST_CHECK_EQUAL( ast->to_string(), "SIZE" );
+    ast->set_content_provider( &fc );
+    result = ast->eval();
+    BOOST_CHECK_EQUAL( result->get_type(), Result::NUMERIC );
+    BOOST_CHECK_EQUAL( result->to_num(), 1760 );
+    BOOST_CHECK_EQUAL( result->to_bool(), true );
+
+    BOOST_CHECK_EQUAL( parser.parse( "force & ext=\"kkk\"" ), true );
+    ast = parser.get_result_AST();
+    BOOST_CHECK_EQUAL( ast->to_string(), "(FORCE&(EXT=\"kkk\"))" );
     ast->set_content_provider( &fc );
     result = ast->eval();
     BOOST_CHECK_EQUAL( result->get_type(), Result::BOOLEAN );
     BOOST_CHECK_EQUAL( result->to_bool(), false );
+
+    BOOST_CHECK_EQUAL( parser.parse( "force | ext=\"kkk\"" ), true );
+    ast = parser.get_result_AST();
+    BOOST_CHECK_EQUAL( ast->to_string(), "(FORCE|(EXT=\"kkk\"))" );
+    ast->set_content_provider( &fc );
+    result = ast->eval();
+    BOOST_CHECK_EQUAL( result->get_type(), Result::BOOLEAN );
+    BOOST_CHECK_EQUAL( result->to_bool(), true );
 }

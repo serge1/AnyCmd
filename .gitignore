@@ -4,10 +4,9 @@ Win32
 x64
 ipch
 
-anycmd.ncb
-anycmd.*.user
 listplugin.GID
 
+*.user
 *.suo
 *.sdf
 *.opensdf

@@ -152,8 +152,10 @@ operator==( const Result& value1, const Result& value2 )
     Result::ResultType type = Result::get_common( value1.get_type(),
                                                   value2.get_type() );
 
-    ResultPtr new1 = Result::convert_to_type( type, value1 );
-    ResultPtr new2 = Result::convert_to_type( type, value2 );
+    ResultPtr   new1 = Result::convert_to_type( type, value1 );
+    ResultPtr   new2 = Result::convert_to_type( type, value2 );
+    std::string new_str1;
+    std::string new_str2;
 
     switch ( type ) {
     case Result::BOOLEAN:
@@ -161,7 +163,11 @@ operator==( const Result& value1, const Result& value2 )
     case Result::NUMERIC:
         return new1->to_num() == new2->to_num();
     case Result::STRING:
-        return new1->to_str() == new2->to_str();
+        new_str1 = new1->to_str();
+        new_str2 = new2->to_str();
+        std::transform( new_str1.begin(), new_str1.end(), new_str1.begin(), toupper );
+        std::transform( new_str2.begin(), new_str2.end(), new_str2.begin(), toupper );
+        return new_str1 == new_str2;
     }
 
     return false;
@@ -175,8 +181,10 @@ operator<( const Result& value1, const Result& value2 )
     Result::ResultType type = Result::get_common( value1.get_type(),
                                                   value2.get_type() );
 
-    ResultPtr new1 = Result::convert_to_type( type, value1 );
-    ResultPtr new2 = Result::convert_to_type( type, value2 );
+    ResultPtr   new1 = Result::convert_to_type( type, value1 );
+    ResultPtr   new2 = Result::convert_to_type( type, value2 );
+    std::string new_str1;
+    std::string new_str2;
 
     switch ( type ) {
     case Result::BOOLEAN:
@@ -184,7 +192,11 @@ operator<( const Result& value1, const Result& value2 )
     case Result::NUMERIC:
         return new1->to_num() < new2->to_num();
     case Result::STRING:
-        return new1->to_str() < new2->to_str();
+        new_str1 = new1->to_str();
+        new_str2 = new2->to_str();
+        std::transform( new_str1.begin(), new_str1.end(), new_str1.begin(), toupper );
+        std::transform( new_str2.begin(), new_str2.end(), new_str2.begin(), toupper );
+        return new_str1 < new_str2;
     }
 
     return false;
@@ -215,7 +227,7 @@ operator&&( const Result& value1, const Result& value2 )
 
 //------------------------------------------------------------------------------
 bool
-operator!=( const ResultPtr& ptr1, const ResultPtr& ptr2 )
+operator!=( const Result& ptr1, const Result& ptr2 )
 {
     return !(ptr1 == ptr2);
 }
@@ -223,7 +235,7 @@ operator!=( const ResultPtr& ptr1, const ResultPtr& ptr2 )
 
 //------------------------------------------------------------------------------
 bool
-operator>( const ResultPtr& ptr1, const ResultPtr& ptr2 )
+operator>( const Result& ptr1, const Result& ptr2 )
 {
     return !(ptr1 < ptr2) && !(ptr1 == ptr2);
 }

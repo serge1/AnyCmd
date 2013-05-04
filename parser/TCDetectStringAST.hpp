@@ -14,9 +14,11 @@ class IFileContentProvider
     virtual std::string  get_file_name()            const = 0;
     virtual std::string  get_file_ext()             const = 0;
     virtual unsigned int get_file_size()            const = 0;
-    virtual unsigned int get_content_at( unsigned int i ) = 0;
-    virtual unsigned int get_content_size()               = 0;
-    virtual bool         find( std::string str, bool case_insensitive ) = 0;
+    virtual unsigned int get_content_at( unsigned int i )
+                                                    const = 0;
+    virtual unsigned int get_content_size()         const = 0;
+    virtual bool         find ( std::string str )   const = 0;
+    virtual bool         findi( std::string str )   const = 0;
 };
 
 
@@ -58,23 +60,30 @@ class TCDetectStringFileContent : public IFileContentProvider
         return filestatus.st_size;
     }
 
-    virtual unsigned int get_content_at( unsigned int i )
+    virtual unsigned int get_content_at( unsigned int i ) const
     {
         return 0;
     }
 
-    virtual unsigned int get_content_size()
+    virtual unsigned int get_content_size() const
     {
         return 0;
     }
 
-    virtual bool find( std::string str, bool case_insensitive )
+    virtual bool find( std::string str ) const
+    {
+        return true;
+    }
+
+    virtual bool findi( std::string str ) const
     {
         return true;
     }
 
   private:
-    std::string file_name;
+    std::string           file_name;
+    mutable bool          loaded;
+    mutable std::ifstream ifs;
 };
 
 
@@ -290,7 +299,14 @@ class ASTFunc1Node : public ASTNode
 //------------------------------------------------------------------------------
     virtual ResultPtr eval()
     {
-        bool found = content_provider->find( arg, str == "FINDI" );
+        bool found;
+        if ( str == "FINDI" ) {
+            found = content_provider->findi( arg );
+        }
+        else {
+            found = content_provider->find( arg );
+        }
+
         ResultPtr res = std::move( ResultPtr( new BooleanResult( found ) ) );
         return res;
     };
@@ -338,27 +354,27 @@ class ASTOpNode : public ASTNode
         switch ( op ) {
         case Token::OP_OR:
             res = std::move( ResultPtr(
-                new BooleanResult( left->eval() || right->eval() ) ) );
+                new BooleanResult( *(left->eval()) || *(right->eval()) ) ) );
             break;
         case Token::OP_AND:
             res = std::move( ResultPtr(
-                new BooleanResult( left->eval() && right->eval() ) ) );
+                new BooleanResult( *(left->eval()) && *(right->eval()) ) ) );
             break;
         case Token::OP_LG:
             res = std::move( ResultPtr(
-                new BooleanResult( left->eval() > right->eval() ) ) );
+                new BooleanResult( *(left->eval()) > *(right->eval()) ) ) );
             break;
         case Token::OP_SM:
             res = std::move( ResultPtr(
-                new BooleanResult( left->eval() < right->eval() ) ) );
+                new BooleanResult( *(left->eval()) < *(right->eval()) ) ) );
             break;
         case Token::OP_NEQ:
             res = std::move( ResultPtr(
-                new BooleanResult( left->eval() != right->eval() ) ) );
+                new BooleanResult( *(left->eval()) != *(right->eval()) ) ) );
             break;
         case Token::OP_EQ:
             res = std::move( ResultPtr(
-                new BooleanResult( left->eval() == right->eval() ) ) );
+                new BooleanResult( *(left->eval()) == *(right->eval()) ) ) );
             break;
         default:
             break;
