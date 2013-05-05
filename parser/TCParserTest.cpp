@@ -480,3 +480,20 @@ BOOST_AUTO_TEST_CASE( eval_test2 )
     BOOST_CHECK_EQUAL( result->get_type(), Result::BOOLEAN );
     BOOST_CHECK_EQUAL( result->to_bool(), true );
 }
+
+
+BOOST_AUTO_TEST_CASE( eval_test3 )
+{
+    TCDetectStringParser parser;
+
+    BOOST_CHECK_EQUAL( parser.parse( "Find( \"22\")" ), true );
+    std::unique_ptr<ASTNode> ast = parser.get_result_AST();
+    BOOST_CHECK_EQUAL( ast->to_string(), "FIND(\"22\")" );
+    TCDetectStringFileContent fc( "test_files\\test_file.log" );
+    ast->set_content_provider( &fc );
+    ResultPtr result = ast->eval();
+    BOOST_CHECK_EQUAL( result->get_type(), Result::BOOLEAN );
+    BOOST_CHECK_EQUAL( result->to_bool(), false );
+
+    BOOST_CHECK_EQUAL( parser.parse( "Find( 22 )" ), false );
+}

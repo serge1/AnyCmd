@@ -25,7 +25,8 @@ class IFileContentProvider
 class TCDetectStringFileContent : public IFileContentProvider
 {
   public:  
-    TCDetectStringFileContent( std::string file_name_ = "" ) : file_name( file_name_ ) {};
+    TCDetectStringFileContent( std::string file_name_ = "" ) :
+        file_name( file_name_ ), loaded( false ) {}
 
     void set_file_name( std::string file_name_ )
     {
@@ -72,6 +73,7 @@ class TCDetectStringFileContent : public IFileContentProvider
 
     virtual bool find( std::string str ) const
     {
+
         return true;
     }
 
@@ -81,9 +83,33 @@ class TCDetectStringFileContent : public IFileContentProvider
     }
 
   private:
+    bool load_content()
+    {
+        if ( loaded ) {
+            return true;
+        }
+
+        ifs.open( file_name, std::ios_base::in | std::ios_base::binary );
+        if ( !ifs.good() ) {
+            return false;
+        }
+
+        unsigned char   buffer[8192];
+        std::streamsize real_size;
+        ifs.get( (char*)buffer, sizeof( buffer ) );
+        real_size = ifs.gcount();
+        ifs.close();
+
+        //data = copy
+
+        return true;
+    }
+
+  private:
     std::string           file_name;
     mutable bool          loaded;
     mutable std::ifstream ifs;
+    mutable std::string   data;
 };
 
 
@@ -315,7 +341,7 @@ class ASTFunc1Node : public ASTNode
     virtual std::string to_string()
     {
         std::string ret;
-        ret = str + "(" + arg + ")";
+        ret = str + "(\"" + arg + "\")";
         return ret;
     }
 

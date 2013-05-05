@@ -88,6 +88,7 @@ class TCDetectStringLexer
             for ( int i = 0; i < sizeof( words ) / sizeof( words[0] ); ++i ) {
                 std::transform( word.begin(), word.end(), word.begin(), ::toupper );
                 if ( words[i].word == word ) {
+                    ret.value               = words[i].word;
                     ret.type                = words[i].type;
                     current_parse_position += word.length();
                     return ret;
