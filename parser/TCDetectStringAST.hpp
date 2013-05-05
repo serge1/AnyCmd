@@ -63,44 +63,68 @@ class TCDetectStringFileContent : public IFileContentProvider
 
     virtual unsigned int get_content_at( unsigned int i ) const
     {
+        if ( load_content() ) {
+            return data[i];
+        }
         return 0;
     }
 
     virtual unsigned int get_content_size() const
     {
+        if ( load_content() ) {
+            return data.size();
+        }
         return 0;
     }
 
     virtual bool find( std::string str ) const
     {
+        bool ret = load_content();
 
-        return true;
+        if ( ret ) {
+            unsigned int pos = data.find( str );
+            ret = ( pos != std::string::npos );
+        }
+
+        return ret;
     }
 
     virtual bool findi( std::string str ) const
     {
-        return true;
+        bool ret = load_content();
+
+        if ( ret ) {
+            std::string str1( data );
+            std::transform( str.begin(), str.end(), str.begin(), toupper );
+            std::transform( str1.begin(), str1.end(), str1.begin(), toupper );
+            unsigned int pos = str1.find( str );
+            ret = ( pos != std::string::npos );
+        }
+
+        return ret;
     }
 
   private:
-    bool load_content()
+    bool load_content() const
     {
         if ( loaded ) {
             return true;
         }
 
+        std::ifstream ifs;
         ifs.open( file_name, std::ios_base::in | std::ios_base::binary );
         if ( !ifs.good() ) {
             return false;
         }
 
-        unsigned char   buffer[8192];
+        char            buffer[8192];
         std::streamsize real_size;
-        ifs.get( (char*)buffer, sizeof( buffer ) );
+        ifs.read( (char*)buffer, sizeof( buffer ) );
         real_size = ifs.gcount();
         ifs.close();
 
-        //data = copy
+        loaded = true;
+        data.assign( buffer, (size_t)real_size );
 
         return true;
     }
@@ -108,7 +132,6 @@ class TCDetectStringFileContent : public IFileContentProvider
   private:
     std::string           file_name;
     mutable bool          loaded;
-    mutable std::ifstream ifs;
     mutable std::string   data;
 };
 

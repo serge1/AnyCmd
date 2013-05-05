@@ -73,7 +73,7 @@ class StringResult : public Result
 
     virtual unsigned int to_num() const
     {
-        return std::strtoul( value.c_str(), 0 , 0 );
+        return value[0];
     }
 
     virtual std::string to_str() const

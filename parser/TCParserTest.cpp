@@ -317,13 +317,13 @@ BOOST_AUTO_TEST_CASE( result_test1 )
     BOOST_CHECK_EQUAL( nr3.to_str(), "1" );
 
     StringResult nr4( "Abc" );
-    BOOST_CHECK_EQUAL( nr4.to_bool(), false );
-    BOOST_CHECK_EQUAL( nr4.to_num(), 0 );
+    BOOST_CHECK_EQUAL( nr4.to_bool(), true );
+    BOOST_CHECK_EQUAL( nr4.to_num(), 65 );
     BOOST_CHECK_EQUAL( nr4.to_str(), "Abc" );
 
     StringResult nr5( "10Abc" );
     BOOST_CHECK_EQUAL( nr5.to_bool(), true );
-    BOOST_CHECK_EQUAL( nr5.to_num(), 10 );
+    BOOST_CHECK_EQUAL( nr5.to_num(), 49 );
     BOOST_CHECK_EQUAL( nr5.to_str(), "10Abc" );
 }
 
@@ -350,7 +350,7 @@ BOOST_AUTO_TEST_CASE( result_test2 )
     BOOST_CHECK_EQUAL( res1->to_str(), "10" );
     res1 = std::move( Result::convert_to_type( Result::NUMERIC,  *res1 ) );
     BOOST_CHECK_EQUAL( res1->get_type(), Result::NUMERIC );
-    BOOST_CHECK_EQUAL( res1->to_num(), 10 );
+    BOOST_CHECK_EQUAL( res1->to_num(), 49 );
     res1 = std::move( Result::convert_to_type( Result::BOOLEAN,  *res1 ) );
     BOOST_CHECK_EQUAL( res1->get_type(), Result::BOOLEAN );
     BOOST_CHECK_EQUAL( res1->to_bool(), true );
@@ -493,7 +493,183 @@ BOOST_AUTO_TEST_CASE( eval_test3 )
     ast->set_content_provider( &fc );
     ResultPtr result = ast->eval();
     BOOST_CHECK_EQUAL( result->get_type(), Result::BOOLEAN );
-    BOOST_CHECK_EQUAL( result->to_bool(), false );
+    BOOST_CHECK_EQUAL( result->to_bool(), true );
 
     BOOST_CHECK_EQUAL( parser.parse( "Find( 22 )" ), false );
+
+    BOOST_CHECK_EQUAL( parser.parse( "Find( \"33\")" ), true );
+    ast = parser.get_result_AST();
+    BOOST_CHECK_EQUAL( ast->to_string(), "FIND(\"33\")" );
+    ast->set_content_provider( &fc );
+    result = ast->eval();
+    BOOST_CHECK_EQUAL( result->get_type(), Result::BOOLEAN );
+    BOOST_CHECK_EQUAL( result->to_bool(), false );
+
+    BOOST_CHECK_EQUAL( parser.parse( "Find( \"repDtc\")" ), true );
+    ast = parser.get_result_AST();
+    BOOST_CHECK_EQUAL( ast->to_string(), "FIND(\"repDtc\")" );
+    ast->set_content_provider( &fc );
+    result = ast->eval();
+    BOOST_CHECK_EQUAL( result->get_type(), Result::BOOLEAN );
+    BOOST_CHECK_EQUAL( result->to_bool(), true );
+
+    BOOST_CHECK_EQUAL( parser.parse( "Find( \"repDtc1\")" ), true );
+    ast = parser.get_result_AST();
+    BOOST_CHECK_EQUAL( ast->to_string(), "FIND(\"repDtc1\")" );
+    ast->set_content_provider( &fc );
+    result = ast->eval();
+    BOOST_CHECK_EQUAL( result->get_type(), Result::BOOLEAN );
+    BOOST_CHECK_EQUAL( result->to_bool(), false );
+
+    BOOST_CHECK_EQUAL( parser.parse( "Find( \"\")" ), true );
+    ast = parser.get_result_AST();
+    BOOST_CHECK_EQUAL( ast->to_string(), "FIND(\"\")" );
+    ast->set_content_provider( &fc );
+    result = ast->eval();
+    BOOST_CHECK_EQUAL( result->get_type(), Result::BOOLEAN );
+    BOOST_CHECK_EQUAL( result->to_bool(), true );
+}
+
+
+BOOST_AUTO_TEST_CASE( eval_test4 )
+{
+    TCDetectStringParser parser;
+
+    BOOST_CHECK_EQUAL( parser.parse( "FindI( \"22\")" ), true );
+    std::unique_ptr<ASTNode> ast = parser.get_result_AST();
+    BOOST_CHECK_EQUAL( ast->to_string(), "FINDI(\"22\")" );
+    TCDetectStringFileContent fc( "test_files\\test_file.log" );
+    ast->set_content_provider( &fc );
+    ResultPtr result = ast->eval();
+    BOOST_CHECK_EQUAL( result->get_type(), Result::BOOLEAN );
+    BOOST_CHECK_EQUAL( result->to_bool(), true );
+
+    BOOST_CHECK_EQUAL( parser.parse( "Findi( 22 )" ), false );
+
+    BOOST_CHECK_EQUAL( parser.parse( "Findi( \"33\")" ), true );
+    ast = parser.get_result_AST();
+    BOOST_CHECK_EQUAL( ast->to_string(), "FINDI(\"33\")" );
+    ast->set_content_provider( &fc );
+    result = ast->eval();
+    BOOST_CHECK_EQUAL( result->get_type(), Result::BOOLEAN );
+    BOOST_CHECK_EQUAL( result->to_bool(), false );
+
+    BOOST_CHECK_EQUAL( parser.parse( "Findi( \"REPdtc\")" ), true );
+    ast = parser.get_result_AST();
+    BOOST_CHECK_EQUAL( ast->to_string(), "FINDI(\"REPdtc\")" );
+    ast->set_content_provider( &fc );
+    result = ast->eval();
+    BOOST_CHECK_EQUAL( result->get_type(), Result::BOOLEAN );
+    BOOST_CHECK_EQUAL( result->to_bool(), true );
+
+    BOOST_CHECK_EQUAL( parser.parse( "FindI( \"repDtc1\")" ), true );
+    ast = parser.get_result_AST();
+    BOOST_CHECK_EQUAL( ast->to_string(), "FINDI(\"repDtc1\")" );
+    ast->set_content_provider( &fc );
+    result = ast->eval();
+    BOOST_CHECK_EQUAL( result->get_type(), Result::BOOLEAN );
+    BOOST_CHECK_EQUAL( result->to_bool(), false );
+
+    BOOST_CHECK_EQUAL( parser.parse( "Findi( \"\")" ), true );
+    ast = parser.get_result_AST();
+    BOOST_CHECK_EQUAL( ast->to_string(), "FINDI(\"\")" );
+    ast->set_content_provider( &fc );
+    result = ast->eval();
+    BOOST_CHECK_EQUAL( result->get_type(), Result::BOOLEAN );
+    BOOST_CHECK_EQUAL( result->to_bool(), true );
+}
+
+
+BOOST_AUTO_TEST_CASE( eval_test5 )
+{
+    TCDetectStringParser parser;
+
+    BOOST_CHECK_EQUAL( parser.parse( "[0]=127 & [1]=\"E\" & [2]=\"L\" & [3]=\"F\"" ), true );
+    std::unique_ptr<ASTNode> ast = parser.get_result_AST();
+    BOOST_CHECK_EQUAL( ast->to_string(), "(([0]=127)&(([1]=\"E\")&(([2]=\"L\")&([3]=\"F\"))))" );
+    TCDetectStringFileContent fc( "test_files\\hello_32" );
+    ast->set_content_provider( &fc );
+    ResultPtr result = ast->eval();
+    BOOST_CHECK_EQUAL( result->get_type(), Result::BOOLEAN );
+    BOOST_CHECK_EQUAL( result->to_bool(), true );
+
+    BOOST_CHECK_EQUAL( parser.parse( "ext=\"\"" ), true );
+    ast = parser.get_result_AST();
+    BOOST_CHECK_EQUAL( ast->to_string(), "(EXT=\"\")" );
+    ast->set_content_provider( &fc );
+    result = ast->eval();
+    BOOST_CHECK_EQUAL( result->get_type(), Result::BOOLEAN );
+    BOOST_CHECK_EQUAL( result->to_bool(), true );
+
+    BOOST_CHECK_EQUAL( parser.parse( "ext=\"_32\"" ), true );
+    ast = parser.get_result_AST();
+    BOOST_CHECK_EQUAL( ast->to_string(), "(EXT=\"_32\")" );
+    ast->set_content_provider( &fc );
+    result = ast->eval();
+    BOOST_CHECK_EQUAL( result->get_type(), Result::BOOLEAN );
+    BOOST_CHECK_EQUAL( result->to_bool(), false );
+
+    BOOST_CHECK_EQUAL( parser.parse( "ext=\"\" & [0]=127 & [1]=\"E\" & [2]=\"L\" & [3]=\"F\"" ), true );
+    ast = parser.get_result_AST();
+    BOOST_CHECK_EQUAL( ast->to_string(), "((EXT=\"\")&(([0]=127)&(([1]=\"E\")&(([2]=\"L\")&([3]=\"F\")))))" );
+    ast->set_content_provider( &fc );
+    result = ast->eval();
+    BOOST_CHECK_EQUAL( result->get_type(), Result::BOOLEAN );
+    BOOST_CHECK_EQUAL( result->to_bool(), true );
+
+    BOOST_CHECK_EQUAL( parser.parse( "ext=\"\" & [0]=127 & [1]=\"E\" & [2]=\"L\" & [3]=\"E\"" ), true );
+    ast = parser.get_result_AST();
+    BOOST_CHECK_EQUAL( ast->to_string(), "((EXT=\"\")&(([0]=127)&(([1]=\"E\")&(([2]=\"L\")&([3]=\"E\")))))" );
+    ast->set_content_provider( &fc );
+    result = ast->eval();
+    BOOST_CHECK_EQUAL( result->get_type(), Result::BOOLEAN );
+    BOOST_CHECK_EQUAL( result->to_bool(), false );
+
+    BOOST_CHECK_EQUAL( parser.parse( "ext=\"sss\" & [0]=127 & [1]=\"E\" & [2]=\"L\" & [3]=\"F\"" ), true );
+    ast = parser.get_result_AST();
+    BOOST_CHECK_EQUAL( ast->to_string(), "((EXT=\"sss\")&(([0]=127)&(([1]=\"E\")&(([2]=\"L\")&([3]=\"F\")))))" );
+    ast->set_content_provider( &fc );
+    result = ast->eval();
+    BOOST_CHECK_EQUAL( result->get_type(), Result::BOOLEAN );
+    BOOST_CHECK_EQUAL( result->to_bool(), false );
+
+    BOOST_CHECK_EQUAL( parser.parse( "ext=\"sss\" | [0]=127 & [1]=\"E\" & [2]=\"L\" & [3]=\"F\"" ), true );
+    ast = parser.get_result_AST();
+    BOOST_CHECK_EQUAL( ast->to_string(), "((EXT=\"sss\")|(([0]=127)&(([1]=\"E\")&(([2]=\"L\")&([3]=\"F\")))))" );
+    ast->set_content_provider( &fc );
+    result = ast->eval();
+    BOOST_CHECK_EQUAL( result->get_type(), Result::BOOLEAN );
+    BOOST_CHECK_EQUAL( result->to_bool(), true );
+
+    BOOST_CHECK_EQUAL( parser.parse( "size=4721 & [0]=127 & [1]=\"E\" & [2]=\"L\" & [3]=\"F\"" ), true );
+    ast = parser.get_result_AST();
+    BOOST_CHECK_EQUAL( ast->to_string(), "((SIZE=4721)&(([0]=127)&(([1]=\"E\")&(([2]=\"L\")&([3]=\"F\")))))" );
+    ast->set_content_provider( &fc );
+    result = ast->eval();
+    BOOST_CHECK_EQUAL( result->get_type(), Result::BOOLEAN );
+    BOOST_CHECK_EQUAL( result->to_bool(), true );
+
+    BOOST_CHECK_EQUAL( parser.parse( "size!=4720 & [0]=127 & [1]=\"E\" & [2]=\"L\" & [3]=\"F\"" ), true );
+    ast = parser.get_result_AST();
+    BOOST_CHECK_EQUAL( ast->to_string(), "((SIZE!=4720)&(([0]=127)&(([1]=\"E\")&(([2]=\"L\")&([3]=\"F\")))))" );
+    ast->set_content_provider( &fc );
+    result = ast->eval();
+    BOOST_CHECK_EQUAL( result->get_type(), Result::BOOLEAN );
+    BOOST_CHECK_EQUAL( result->to_bool(), true );
+
+    BOOST_CHECK_EQUAL( parser.parse( "size!=4720 | ([0]=127 & [1]=\"E\" & [2]=\"L\" & [3]=\"F\")" ), true );
+    ast = parser.get_result_AST();
+    BOOST_CHECK_EQUAL( ast->to_string(), "((SIZE!=4720)|(([0]=127)&(([1]=\"E\")&(([2]=\"L\")&([3]=\"F\")))))" );
+    ast->set_content_provider( &fc );
+    result = ast->eval();
+    BOOST_CHECK_EQUAL( result->get_type(), Result::BOOLEAN );
+    BOOST_CHECK_EQUAL( result->to_bool(), true );
+
+    BOOST_CHECK_EQUAL( parser.parse( "size=4720 | ([0]=127 & [1]=\"E\" & [2]=\"L\" & [3]=\"F\")" ), true );
+    ast = parser.get_result_AST();
+    BOOST_CHECK_EQUAL( ast->to_string(), "((SIZE=4720)|(([0]=127)&(([1]=\"E\")&(([2]=\"L\")&([3]=\"F\")))))" );
+    ast->set_content_provider( &fc );
+    result = ast->eval();
+    BOOST_CHECK_EQUAL( result->get_type(), Result::BOOLEAN );
+    BOOST_CHECK_EQUAL( result->to_bool(), true );
 }
