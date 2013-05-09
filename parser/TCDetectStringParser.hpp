@@ -7,7 +7,7 @@
 
 //------------------------------------------------------------------------------
 #define GET_AND_EXPECT( token, value2 ) \
-    token = lexer.get_next_token();     \
+    token = lexer.get_token();          \
     if ( token.type != value2 ) return false;
 #define EXPECT( token, value2 ) \
     if ( token.type != value2 ) return false;
@@ -43,7 +43,7 @@ class TCDetectStringParser
 
         lexer.set_text( str );
 
-        tk = lexer.get_next_token();
+        tk = lexer.get_token();
 
         ret = parse_expr( 0, &tree );
 
@@ -98,7 +98,7 @@ class TCDetectStringParser
                                                       std::unique_ptr<ASTNode>() ) ) );
                 node = &((ASTOpNode*)node->get())->right;
 
-                tk = lexer.get_next_token();
+                tk = lexer.get_token();
             }
         } while ( ret );
 
@@ -149,13 +149,13 @@ class TCDetectStringParser
             GET_AND_EXPECT( tk, Token::CLOSE_BR_SQ );
             break;
         case Token::OPEN_BR:
-            tk  = lexer.get_next_token();
+            tk  = lexer.get_token();
             ret = parse_expr( 0, node );
             EXPECT( tk, Token::CLOSE_BR );
             break;
         case Token::OP_NOT:
             GET_AND_EXPECT( tk, Token::OPEN_BR );
-            tk  = lexer.get_next_token();
+            tk  = lexer.get_token();
             ret = parse_expr( 0, node );
             EXPECT( tk, Token::CLOSE_BR );
             break;
@@ -163,7 +163,7 @@ class TCDetectStringParser
             ret = false;
         }
 
-        tk = lexer.get_next_token();
+        tk = lexer.get_token();
         
         return ret;
     }

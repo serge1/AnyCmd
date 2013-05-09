@@ -1,5 +1,6 @@
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <stdlib.h>
 #include <sstream>
 #include <fstream>
 #include <memory>
@@ -40,18 +41,13 @@ class TCDetectStringFileContent : public IFileContentProvider
 
     virtual std::string get_file_ext() const
     {
-        size_t pos      = file_name.find_last_of(".");
-        size_t slashpos = file_name.find_last_of("\\");
-        if ( slashpos != std::string::npos ) {
-            if ( pos != std::string::npos &&
-                 pos < slashpos ) {
-                return "";
-            }
+        char szExt[_MAX_EXT];
+        _splitpath_s( file_name.c_str(), 0, 0, 0, 0, 0, 0, szExt, _MAX_EXT );
+        std::string res( szExt );
+        if ( ( !res.empty() ) && ( res[0] == '.' ) ) {
+            res = res.substr( 1 );
         }
-        if( pos != std::string::npos ) {
-            return file_name.substr( pos + 1 );
-        }
-        return "";
+        return res;
     }
 
     virtual unsigned int get_file_size() const

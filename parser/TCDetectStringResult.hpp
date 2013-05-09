@@ -16,8 +16,7 @@ class Result
     virtual unsigned int to_num()  const = 0;
     virtual std::string  to_str()  const = 0;
 
-    ResultType get_type() const { return type; };
-
+    ResultType        get_type() const { return type; };
     static ResultType get_common( Result::ResultType rt1,
                                   Result::ResultType rt2 );
     static ResultPtr  convert_to_type( Result::ResultType type,

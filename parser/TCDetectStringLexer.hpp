@@ -2,6 +2,7 @@
 #define TCDetectStringLexer_H
 
 #include <iostream>
+#include <algorithm>
 #include <string>
 #include <locale>
 
@@ -32,11 +33,11 @@ searchAndReplace( std::string& value, std::string const& search,
 class Token {
   public:
     enum TokenType { EMPTY,
-                        NUM, STRING, BOOLEAN,
-                        FUNC_EXT, FUNC_SIZE, FUNC_FORCE, FUNC_MULTIMEDIA,
-                        FUNC_FIND, FUNC_FINDI,
-                        OPEN_BR, CLOSE_BR, OPEN_BR_SQ, CLOSE_BR_SQ,
-                        OP_NOT, OP_EQ, OP_NEQ, OP_AND, OP_OR, OP_LG, OP_SM };
+                     NUM, STRING, BOOLEAN,
+                     FUNC_EXT, FUNC_SIZE, FUNC_FORCE, FUNC_MULTIMEDIA,
+                     FUNC_FIND, FUNC_FINDI,
+                     OPEN_BR, CLOSE_BR, OPEN_BR_SQ, CLOSE_BR_SQ,
+                     OP_NOT, OP_EQ, OP_NEQ, OP_AND, OP_OR, OP_LG, OP_SM };
 
     Token() : type( Token::EMPTY ), value( "" ) {};
 
@@ -58,7 +59,7 @@ class TCDetectStringLexer
     }
 
 //------------------------------------------------------------------------------
-    Token get_next_token()
+    Token get_token()
     {
         Token ret;
 
@@ -84,7 +85,7 @@ class TCDetectStringLexer
         };
 
         std::string word;
-        if ( get_next_word( word ) ) {
+        if ( get_word( word ) ) {
             for ( int i = 0; i < sizeof( words ) / sizeof( words[0] ); ++i ) {
                 std::transform( word.begin(), word.end(), word.begin(), ::toupper );
                 if ( words[i].word == word ) {
@@ -96,16 +97,16 @@ class TCDetectStringLexer
             }
         }
 
-        if ( get_next_num( word ) ) {
+        if ( get_num( word ) ) {
             ret.type                = Token::NUM;
             ret.value               = word;
             current_parse_position += word.length();
             return ret;
         }
 
-        if ( get_next_str( word ) ) {
-            ret.type                = Token::STRING;
-            ret.value               = word;
+        if ( get_str( word ) ) {
+            ret.type  = Token::STRING;
+            ret.value = word;
             return ret;
         }
 
@@ -159,7 +160,7 @@ class TCDetectStringLexer
     }
 
 //------------------------------------------------------------------------------
-    bool get_next_word( std::string& word )
+    bool get_word( std::string& word )
     {
         std::locale  loc;
         unsigned int size = src.length();
@@ -182,7 +183,7 @@ class TCDetectStringLexer
     }
 
 //------------------------------------------------------------------------------
-    bool get_next_num( std::string& word )
+    bool get_num( std::string& word )
     {
         std::locale  loc;
         unsigned int size = src.length();
@@ -205,7 +206,7 @@ class TCDetectStringLexer
     }
 
 //------------------------------------------------------------------------------
-    bool get_next_str( std::string& word )
+    bool get_str( std::string& word )
     {
         if ( src[current_parse_position] != '"' ) {
             return false;
