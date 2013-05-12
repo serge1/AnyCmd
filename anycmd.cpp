@@ -36,13 +36,15 @@ THE SOFTWARE.
 #include <math.h> 
 #include <algorithm> 
 #include <string>
+#include <vector>
 
 #include "anycmd.h"
 
-#define PLUGIN_NAME        "AnyCmd"
-#define DETECT_STRING_KEY  "DetectString"
-#define COMMAND_STRING_KEY "Command"
-#define STREAM_SELECT_KEY  "Stream"
+#define PLUGIN_NAME              "AnyCmd"
+#define DETECT_STRING_KEY        "Detect"
+#define DETECT_STRING_KEY_LEGACY "DetectString"
+#define COMMAND_STRING_KEY       "Command"
+#define STREAM_SELECT_KEY        "Stream"
 
 HINSTANCE hinst;
 HWND      listWin = 0;
@@ -51,10 +53,14 @@ std::string g_text;
 std::string g_text_lo;
 char        inifilename[MAX_PATH]="anycmd.ini";  // Unused in this plugin,
                                                  // may be used to save data
-char detect_string[MAX_PATH];
-char command_string[MAX_PATH];
-char cmd[MAX_PATH];
-int  streams = 3;
+
+struct DetectString {
+    char detect_string[MAX_PATH];
+    char command_string[MAX_PATH];
+    int  streams;
+};
+
+std::vector< DetectString > ds;
 
 //---------------------------------------------------------------------------
 static char*
@@ -151,7 +157,7 @@ DllMain( HANDLE hModule,
 void APIENTRY
 ListGetDetectString( char* detectString, int maxlen )
 {
-    strlcpy( detectString, detect_string, maxlen );
+    strlcpy( detectString, ds[0].detect_string, maxlen );
 }
 
 
@@ -161,42 +167,45 @@ ListSetDefaultParams( ListDefaultParamStruct* dps )
 {
     strlcpy( inifilename, dps->DefaultIniName, MAX_PATH-1 );
 
+    ds.push_back( DetectString() );
+
     GetPrivateProfileString( PLUGIN_NAME,
                              DETECT_STRING_KEY,
                              "EXT=TXT",
-                             detect_string,
-                             sizeof( detect_string ),
+                             ds[0].detect_string,
+                             sizeof( ds[0].detect_string ),
                              dps->DefaultIniName );
     GetPrivateProfileString( PLUGIN_NAME,
                              COMMAND_STRING_KEY,
                              "sort.exe %s",
-                             command_string,
-                             sizeof( command_string ),
+                             ds[0].command_string,
+                             sizeof( ds[0].command_string ),
                              dps->DefaultIniName );
-    streams = GetPrivateProfileInt( PLUGIN_NAME,
+    ds[0].streams = GetPrivateProfileInt( PLUGIN_NAME,
                                     STREAM_SELECT_KEY,
                                     ANYCMD_CATCH_STD_OUT | ANYCMD_CATCH_STD_ERR,
                                     dps->DefaultIniName );
-    if ( ( streams & ( ANYCMD_CATCH_STD_OUT | ANYCMD_CATCH_STD_ERR ) ) == 0 ) {
-        streams = ANYCMD_CATCH_STD_OUT | ANYCMD_CATCH_STD_ERR;
+    if ( ( ds[0].streams & ( ANYCMD_CATCH_STD_OUT | ANYCMD_CATCH_STD_ERR ) ) == 0 ) {
+        ds[0].streams = ANYCMD_CATCH_STD_OUT | ANYCMD_CATCH_STD_ERR;
     }
 
-    sprintf_s( cmd, "%d", streams );
+    char tmp[MAX_PATH];
+    sprintf_s( tmp, "%d", ds[0].streams );
     WritePrivateProfileString( PLUGIN_NAME,
                                DETECT_STRING_KEY,
-                               detect_string,
+                               ds[0].detect_string,
                                dps->DefaultIniName );
     WritePrivateProfileString( PLUGIN_NAME,
                                COMMAND_STRING_KEY,
-                               command_string,
+                               ds[0].command_string,
                                dps->DefaultIniName );
     WritePrivateProfileString( PLUGIN_NAME,
                                STREAM_SELECT_KEY,
-                               cmd,
+                               tmp,
                                dps->DefaultIniName );
     
     // Substitute environment variables within the command
-    find_and_substitute_env_vars( command_string, sizeof( command_string ) );
+    find_and_substitute_env_vars( ds[0].command_string, sizeof( ds[0].command_string ) );
 }
 
 
@@ -207,7 +216,7 @@ HWND APIENTRY
     RECT r;
 
     GetClientRect( parentWin, &r );
-    // Create window invisbile, only show when data fully loaded!
+    // Create window invisible, only show when data fully loaded!
     listWin = CreateWindow( "EDIT", "", WS_CHILD | ES_MULTILINE | ES_WANTRETURN |
                             ES_READONLY | WS_HSCROLL | WS_VSCROLL |
                             ES_AUTOVSCROLL | ES_NOHIDESEL,
@@ -235,11 +244,11 @@ HWND APIENTRY
 int APIENTRY
 ListLoadNext( HWND parentWin, HWND listWin, char* fileToLoad, int showFlags)
 {
-    std::string cmd( command_string );
+    std::string cmd( ds[0].command_string );
 
     searchAndReplace( cmd, "%s", fileToLoad );
 
-    g_text = receive_text( cmd.c_str(), streams );
+    g_text = receive_text( cmd.c_str(), ds[0].streams );
     if ( g_text.empty() ) {
         return LISTPLUGIN_ERROR;
     }

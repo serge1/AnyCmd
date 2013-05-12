@@ -26,7 +26,7 @@ THE SOFTWARE.
 #define _ANYELF__H
 
 #define ANYELF_VERSION_HI  1
-#define ANYELF_VERSION_LOW 1
+#define ANYELF_VERSION_LOW 2
 
 #include <string>
 
@@ -66,7 +66,7 @@ typedef struct {
     int size;
     DWORD PluginInterfaceVersionLow;
     DWORD PluginInterfaceVersionHi;
-    char DefaultIniName[MAX_PATH];
+    char  DefaultIniName[MAX_PATH];
 } ListDefaultParamStruct;
 
 HWND APIENTRY ListLoad( HWND parentWin, char* fileToLoad, int showFlags );
