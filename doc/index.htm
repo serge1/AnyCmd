@@ -28,7 +28,7 @@ a:hover {
 
 body {
 	font-family: verdana, tahoma, helvetica, arial, sans-serif;
-	font-size: 90%;
+	font-size: 80%;
 	background-color:#ffffff;
 	margin: 1em;
 }
@@ -37,7 +37,7 @@ pre {
 	font-family: courier, serif;
 	background-color:#f8f8f8;
 	margin: 1.5em;
-	font-size:90%;
+	font-size:80%;
 }
 
 ul {
@@ -53,7 +53,7 @@ ul.menu { /* inherits from ul */
 
 em {
 	color:#FF7700;
-	font-size:110%;
+	font-size:100%;
 }
 
 h1,h2,h3,h4{
@@ -70,7 +70,7 @@ h1 {
 }
 
 h2 {
-	font-size:120%;
+	font-size:110%;
 	font-weight:bold;
 	border-bottom-style:solid; 
 	border-bottom-width:1px; 
@@ -78,13 +78,13 @@ h2 {
 }
 
 h3 {
-	font-size:110%;
+	font-size:100%;
 	font-weight:bold;
 	font-style:italic;
 }
 
 h4 {
-	font-size:100%;
+	font-size:90%;
 	font-weight:bold;
 	font-style:italic;
 }
@@ -132,7 +132,7 @@ width:98%;
 background-color:#ffffff;
 padding:5px;
 border:1px solid #d4d4d4;
-font-size:100%;
+font-size:90%;
 font-family:"courier new";
 }
 
@@ -303,10 +303,11 @@ Remove the second ('x_detect') line.
 </li><br/>
 
 <li>
-In lsplugin.ini, adjust the "DetectString" and "Command" strings for "AnyCmd"
+In anycmd.ini, located at the plugin installation directory, adjust
+"DetectString" and "Command" strings for "AnyCmd"
 group. Initially, they are looking like this:
 <div class="example">
-<h4 class="example">lsplugin.ini</h4>
+<h4 class="example">anycmd.ini</h4>
 <div class="example_code notranslate">
 [AnyCmd]<br/>
 DetectString=EXT=TXT<br/>
@@ -317,7 +318,7 @@ Stream=3<br/>
 This setting permits to sort text files (files with .TXT extension). Modifying
 "DetectString" to be 
 <div class="example">
-<h4 class="example">lsplugin.ini</h4>
+<h4 class="example">anycmd.ini</h4>
 <div class="example_code notranslate">
 DetectString=EXT=TXT & FIND("AnyCmd")
 </div>
@@ -327,6 +328,16 @@ we will sort only those text files that contain "AnyCmd" word inside.
 
 <li>
 Save your changes and restart Total Commander. The new setting should be accepted.
+</li><br/>
+
+<li>
+<b>Improtant note:</b> You may install several instances of the plugin in different
+(sub)directories. This permits to define several detection string filters and
+associate corresponding commands.<br/>
+</li><br/>
+
+<li>
+<b>Improtant note:</b> If anycmd.ini file is not found, lsplugin.ini file is used instead.
 </li><br/>
 
 <h3>
@@ -341,7 +352,7 @@ substituted by actual file name.
 View file's attributes and full path for .INI files:
 </p>
 <div class="example">
-<h4 class="example">lsplugin.ini - View file's attributes and full path for .INI files</h4>
+<h4 class="example">anycmd.ini - View file's attributes and full path for .INI files</h4>
 <div class="example_code notranslate">
 [AnyCmd]<br/>
 DetectString=EXT=INI<br/>
@@ -352,7 +363,7 @@ Command=cmd.exe /c attrib %s<br/>
 Show only the lines containing specific text. For example, find all procedures in TCL file.
 </p>
 <div class="example">
-<h4 class="example">lsplugin.ini - Show the lines containing specific text</h4>
+<h4 class="example">anycmd.ini - Show the lines containing specific text</h4>
 <div class="example_code notranslate">
 [AnyCmd]<br/>
 DetectString=EXT=TCL<br/>
@@ -363,7 +374,7 @@ Command=findstr /i "proc " %s<br/>
 Compile .CPP file and show errors (if any):
 </p>
 <div class="example">
-<h4 class="example">lsplugin.ini - Compile .CPP file and show errors</h4>
+<h4 class="example">anycmd.ini - Compile .CPP file and show errors</h4>
 <div class="example_code notranslate">
 [AnyCmd]<br/>
 DetectString=EXT=CPP<br/>
@@ -374,7 +385,7 @@ Command=cl -c %s<br/>
 Invoke a batch file:
 </p>
 <div class="example">
-<h4 class="example">lsplugin.ini - Invoke a batch file</h4>
+<h4 class="example">anycmd.ini - Invoke a batch file</h4>
 <div class="example_code notranslate">
 [AnyCmd]<br/>
 DetectString=EXT=CPP<br/>
