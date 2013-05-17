@@ -25,6 +25,10 @@ THE SOFTWARE.
 #ifndef TCDetectStringResult_H
 #define TCDetectStringResult_H
 
+#include <memory>
+#include <sstream>
+#include <algorithm>
+
 //------------------------------------------------------------------------------
 class Result;
 typedef std::unique_ptr<Result> ResultPtr;
@@ -141,7 +145,7 @@ struct BooleanResult : public Result
 Result::ResultType
 Result::get_common( const Result::ResultType rt1, const Result::ResultType rt2 )
 {
-    return std::max( rt1, rt2 ); 
+    return ( rt1 > rt2 ) ? rt1 : rt2;
 }
 
 

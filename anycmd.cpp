@@ -39,12 +39,13 @@ THE SOFTWARE.
 #include <vector>
 
 #include "anycmd.h"
+#include "parser/TCDetectStringParser.hpp"
 
 #define PLUGIN_NAME              "AnyCmd"
-#define DETECT_STRING_KEY        "Detect"
+#define DETECT_STRING_KEY        "detect"
 #define DETECT_STRING_KEY_LEGACY "DetectString"
-#define COMMAND_STRING_KEY       "Command"
-#define STREAM_SELECT_KEY        "Stream"
+#define COMMAND_STRING_KEY       "command"
+#define STREAM_SELECT_KEY        "stream"
 
 HINSTANCE hinst;
 HWND      listWin = 0;
@@ -71,7 +72,7 @@ strlcpy( char* p, char* p2, int maxlen )
     return p;
 }
 
-
+/*
 //---------------------------------------------------------------------------
 static void
 searchAndReplace( std::string& value, std::string const& search,
@@ -93,7 +94,7 @@ searchAndReplace( std::string& value, std::string const& search,
             next += replace.length();
     }
 }
-
+*/
 
 //---------------------------------------------------------------------------
 void
@@ -162,56 +163,88 @@ ListGetDetectString( char* detectString, int maxlen )
 
 
 //---------------------------------------------------------------------------
+bool
+read_ini_entries( const char* ini_file, std::string prefix, DetectString& ds )
+{
+    GetPrivateProfileString( PLUGIN_NAME,
+                             ( prefix + DETECT_STRING_KEY ).c_str(),
+                             "EXT=TXT",
+                             ds.detect_string,
+                             sizeof( ds.detect_string ),
+                             ini_file );
+    GetPrivateProfileString( PLUGIN_NAME,
+                             ( prefix + COMMAND_STRING_KEY ).c_str(),
+                             "sort.exe %s",
+                             ds.command_string,
+                             sizeof( ds.command_string ),
+                             ini_file );
+    ds.streams = GetPrivateProfileInt( PLUGIN_NAME,
+                                       ( prefix + STREAM_SELECT_KEY ).c_str(),
+                                       ANYCMD_CATCH_STD_OUT | ANYCMD_CATCH_STD_ERR,
+                                       ini_file );
+    if ( ( ds.streams & ( ANYCMD_CATCH_STD_OUT | ANYCMD_CATCH_STD_ERR ) ) == 0 ) {
+        ds.streams = ANYCMD_CATCH_STD_OUT | ANYCMD_CATCH_STD_ERR;
+    }
+
+    return true;
+}
+
+
+//---------------------------------------------------------------------------
+void
+write_ini_entries( const char* ini_file, std::string prefix, DetectString& ds )
+{
+    char tmp[MAX_PATH];
+    sprintf_s( tmp, "%d", ds.streams );
+
+    WritePrivateProfileString( PLUGIN_NAME,
+                               ( prefix + DETECT_STRING_KEY ).c_str(),
+                               ds.detect_string,
+                               ini_file );
+    WritePrivateProfileString( PLUGIN_NAME,
+                               ( prefix + COMMAND_STRING_KEY ).c_str(),
+                               ds.command_string,
+                               ini_file );
+    WritePrivateProfileString( PLUGIN_NAME,
+                               ( prefix + STREAM_SELECT_KEY ).c_str(),
+                               tmp,
+                               ini_file );
+}
+
+
+//---------------------------------------------------------------------------
 void APIENTRY
 ListSetDefaultParams( ListDefaultParamStruct* dps )
 {
     strlcpy( inifilename, dps->DefaultIniName, MAX_PATH-1 );
 
+    ds.clear();
     ds.push_back( DetectString() );
 
-    GetPrivateProfileString( PLUGIN_NAME,
-                             DETECT_STRING_KEY,
-                             "EXT=TXT",
-                             ds[0].detect_string,
-                             sizeof( ds[0].detect_string ),
-                             dps->DefaultIniName );
-    GetPrivateProfileString( PLUGIN_NAME,
-                             COMMAND_STRING_KEY,
-                             "sort.exe %s",
-                             ds[0].command_string,
-                             sizeof( ds[0].command_string ),
-                             dps->DefaultIniName );
-    ds[0].streams = GetPrivateProfileInt( PLUGIN_NAME,
-                                    STREAM_SELECT_KEY,
-                                    ANYCMD_CATCH_STD_OUT | ANYCMD_CATCH_STD_ERR,
-                                    dps->DefaultIniName );
-    if ( ( ds[0].streams & ( ANYCMD_CATCH_STD_OUT | ANYCMD_CATCH_STD_ERR ) ) == 0 ) {
-        ds[0].streams = ANYCMD_CATCH_STD_OUT | ANYCMD_CATCH_STD_ERR;
-    }
+    // Read and save back the default entries
+    read_ini_entries( dps->DefaultIniName, "", ds[0] );
+    write_ini_entries( dps->DefaultIniName, "", ds[0] );
 
-    char tmp[MAX_PATH];
-    sprintf_s( tmp, "%d", ds[0].streams );
-    WritePrivateProfileString( PLUGIN_NAME,
-                               DETECT_STRING_KEY,
-                               ds[0].detect_string,
-                               dps->DefaultIniName );
-    WritePrivateProfileString( PLUGIN_NAME,
-                               COMMAND_STRING_KEY,
-                               ds[0].command_string,
-                               dps->DefaultIniName );
-    WritePrivateProfileString( PLUGIN_NAME,
-                               STREAM_SELECT_KEY,
-                               tmp,
-                               dps->DefaultIniName );
+    std::string prefix( "0_" );
+    for ( unsigned int i = 1; i < 10; ++i ) {
+        ++prefix[0];
+        DetectString ds_tmp;
+        if ( read_ini_entries( dps->DefaultIniName, prefix, ds_tmp ) ) {
+            ds.push_back( ds_tmp );
+        }
+    }
     
     // Substitute environment variables within the command
-    find_and_substitute_env_vars( ds[0].command_string, sizeof( ds[0].command_string ) );
+    for ( unsigned int i = 0; i < ds.size(); ++i ) {
+        find_and_substitute_env_vars( ds[i].command_string,
+                                      sizeof( ds[i].command_string ) );
+    }
 }
 
 
 //---------------------------------------------------------------------------
 HWND APIENTRY
-    ListLoad( HWND parentWin, char* fileToLoad, int showFlags )
+ListLoad( HWND parentWin, char* fileToLoad, int showFlags )
 {
     RECT r;
 
@@ -244,6 +277,12 @@ HWND APIENTRY
 int APIENTRY
 ListLoadNext( HWND parentWin, HWND listWin, char* fileToLoad, int showFlags)
 {
+    // Find a command conforming detect string pattern
+    for ( unsigned int i = 0; i < ds.size(); ++i ) {
+        find_and_substitute_env_vars( ds[i].command_string,
+                                      sizeof( ds[i].command_string ) );
+    }
+
     std::string cmd( ds[0].command_string );
 
     searchAndReplace( cmd, "%s", fileToLoad );

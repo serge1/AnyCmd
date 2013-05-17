@@ -22,6 +22,9 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */ 
 
+#ifndef TCDetectStringAST_H
+#define TCDetectStringAST_H
+
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <stdlib.h>
@@ -487,3 +490,5 @@ class ASTOpNode : public ASTNode
     std::unique_ptr<ASTNode> left;
     std::unique_ptr<ASTNode> right;
 };
+
+#endif // TCDetectStringAST_H
