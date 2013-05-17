@@ -28,6 +28,7 @@ THE SOFTWARE.
 #define WIN32_LEAN_AND_MEAN		// Exclude rarely-used stuff from Windows headers
 
 #include <windows.h>
+#include <Shlwapi.h>
 #include <stdlib.h>
 #include <shellapi.h>
 #include <malloc.h>
@@ -49,8 +50,8 @@ HWND      listWin = 0;
 
 std::string g_text;
 std::string g_text_lo;
-char        inifilename[MAX_PATH]="anycmd.ini";  // Unused in this plugin,
-                                                 // may be used to save data
+char        inifilename[MAX_PATH]="anycmd.ini";
+
 char detect_string[MAX_PATH];
 char command_string[MAX_PATH];
 char cmd[MAX_PATH];
@@ -156,29 +157,65 @@ ListGetDetectString( char* detectString, int maxlen )
 
 
 //---------------------------------------------------------------------------
+static
+bool
+FindPrivateIniName()
+{
+    DWORD   flags = GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS |
+                    GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT;
+    HMODULE hmod  = 0;
+    DWORD   len = 0;
+
+    ::GetModuleHandleEx( flags,
+                         reinterpret_cast<LPCTSTR>( &::FindPrivateIniName ),
+                         &hmod );
+    if ( hmod == 0 ) {
+        return false;
+    }
+    
+    len = GetModuleFileName(hmod, inifilename, MAX_PATH);
+    if ( len == 0 ) {
+        return false;
+    }
+
+    PathRemoveExtension( inifilename );
+    strcat( inifilename, ".ini" );
+
+    if ( !PathFileExists( inifilename ) ) {
+        return false;
+    }
+
+    return true;
+}
+
+
+//---------------------------------------------------------------------------
 void APIENTRY
 ListSetDefaultParams( ListDefaultParamStruct* dps )
 {
     dps->PluginInterfaceVersionHi  = ANYELF_VERSION_HI;
     dps->PluginInterfaceVersionLow = ANYELF_VERSION_LOW;
-    strlcpy( inifilename, dps->DefaultIniName, MAX_PATH-1 );
+
+    if ( !FindPrivateIniName() ) {
+        strlcpy( inifilename, dps->DefaultIniName, MAX_PATH-1 );
+    }
 
     GetPrivateProfileString( PLUGIN_NAME,
                              DETECT_STRING_KEY,
                              "EXT=TXT",
                              detect_string,
                              sizeof( detect_string ),
-                             dps->DefaultIniName );
+                             inifilename );
     GetPrivateProfileString( PLUGIN_NAME,
                              COMMAND_STRING_KEY,
                              "sort.exe %s",
                              command_string,
                              sizeof( command_string ),
-                             dps->DefaultIniName );
+                             inifilename );
     streams = GetPrivateProfileInt( PLUGIN_NAME,
                                     STREAM_SELECT_KEY,
                                     ANYCMD_CATCH_STD_OUT | ANYCMD_CATCH_STD_ERR,
-                                    dps->DefaultIniName );
+                                    inifilename );
     if ( ( streams & ( ANYCMD_CATCH_STD_OUT | ANYCMD_CATCH_STD_ERR ) ) == 0 ) {
         streams = ANYCMD_CATCH_STD_OUT | ANYCMD_CATCH_STD_ERR;
     }
@@ -187,15 +224,15 @@ ListSetDefaultParams( ListDefaultParamStruct* dps )
     WritePrivateProfileString( PLUGIN_NAME,
                                DETECT_STRING_KEY,
                                detect_string,
-                               dps->DefaultIniName );
+                               inifilename );
     WritePrivateProfileString( PLUGIN_NAME,
                                COMMAND_STRING_KEY,
                                command_string,
-                               dps->DefaultIniName );
+                               inifilename );
     WritePrivateProfileString( PLUGIN_NAME,
                                STREAM_SELECT_KEY,
                                cmd,
-                               dps->DefaultIniName );
+                               inifilename );
     
     // Substitute environment variables within the command
     find_and_substitute_env_vars( command_string, sizeof( command_string ) );

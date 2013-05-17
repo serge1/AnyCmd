@@ -136,6 +136,7 @@
       <DataExecutionPrevention />
       <ImportLibrary>.\Release/anycmd.lib</ImportLibrary>
       <TargetMachine>MachineX86</TargetMachine>
+      <AdditionalDependencies>kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;Shlwapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <Bscmake>
       <SuppressStartupBanner>true</SuppressStartupBanner>
@@ -182,6 +183,7 @@
       <DataExecutionPrevention>
       </DataExecutionPrevention>
       <ImportLibrary>.\Release/anycmd.lib</ImportLibrary>
+      <AdditionalDependencies>kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;Shlwapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <Bscmake>
       <SuppressStartupBanner>true</SuppressStartupBanner>
@@ -232,6 +234,7 @@
       <OutputFile>c:\totalcmd\plugins\wlx\anycmd\anycmd.wlx</OutputFile>
       <ImageHasSafeExceptionHandlers>
       </ImageHasSafeExceptionHandlers>
+      <AdditionalDependencies>kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;Shlwapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <Bscmake>
       <SuppressStartupBanner>true</SuppressStartupBanner>
@@ -278,6 +281,7 @@
       <DataExecutionPrevention>
       </DataExecutionPrevention>
       <ImportLibrary>.\Debug/anycmd.lib</ImportLibrary>
+      <AdditionalDependencies>kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;Shlwapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <Bscmake>
       <SuppressStartupBanner>true</SuppressStartupBanner>
