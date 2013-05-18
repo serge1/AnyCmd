@@ -193,9 +193,6 @@ FindPrivateIniName()
 void APIENTRY
 ListSetDefaultParams( ListDefaultParamStruct* dps )
 {
-    dps->PluginInterfaceVersionHi  = ANYELF_VERSION_HI;
-    dps->PluginInterfaceVersionLow = ANYELF_VERSION_LOW;
-
     if ( !FindPrivateIniName() ) {
         strlcpy( inifilename, dps->DefaultIniName, MAX_PATH-1 );
     }
